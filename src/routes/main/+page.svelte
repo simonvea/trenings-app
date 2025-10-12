@@ -1,15 +1,9 @@
 <script lang="ts">
-	const lift = {
-		name: 'Knebøy',
-		sets: [
-			{ reps: 5, weight: 50, isAmrap: false },
-			{ reps: 5, weight: 60, isAmrap: false },
-			{ reps: 5, weight: 70, isAmrap: true }
-		],
-		supplemental: { sets: 5, reps: 5, weight: 50, name: 'FSL' },
-		comment: ''
-	};
+	import type { PageProps } from '../$types';
 
+	let { data }: PageProps = $props();
+
+	const lift = data.mainLift;
 	const sets = $state(lift.sets.map((s) => ({ ...s, checked: false })));
 	let supplementalSetsDone = $state(0);
 	let isDone = $derived(supplementalSetsDone == lift.supplemental.sets);
@@ -25,7 +19,7 @@
 
 <form class="form" onsubmit={onSubmit}>
 	<section>
-		<h2>Knebøy</h2>
+		<h2>{lift.name}</h2>
 		<table>
 			<thead>
 				<tr>
