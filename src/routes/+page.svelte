@@ -2,13 +2,17 @@
 	import type { PageProps } from './$types';
 	const { data }: PageProps = $props();
 
-	const plans = data.plans;
+	const { blocks } = data;
 </script>
 
 <h1>Velkommen til en ny økt!</h1>
 <h2>Planer</h2>
 <ul>
-	{#each plans as plan (plan.id)}
-		<li>{plan.name}</li>
+	{#each blocks as block (block.id)}
+		<li>
+			<a href={'/blocks/' + block.id}>
+				{block.name}
+			</a>
+		</li>
 	{/each}
 </ul>

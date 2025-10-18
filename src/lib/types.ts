@@ -45,3 +45,47 @@ export type SupplementalTemplate = {
 export type TrainingMax = {
 	[key in MainLifts]: number;
 } & { updatedAt: Date };
+
+export type TrainingBlockDb = {
+	id: number;
+	name?: string;
+	training_day_1: string;
+	training_day_2: string;
+	training_day_3: string;
+	training_day_4?: string;
+	lift_day_1_id: number;
+	lift_day_2_id: number;
+	lift_day_3_id: number;
+	lift_day_4_id?: number;
+	goals?: string;
+	notes?: string;
+	created_at?: Date;
+	completed_date: Date;
+};
+
+export type TrainingCycleDb = {
+	id: number;
+	block_id: number;
+	cycle_number_in_block: number;
+	cycle_type: 'leader' | 'anchor' | '7th week';
+	seventh_week_template_id?: number;
+	supplemental_template_id?: number;
+	start_date: Date;
+	end_date?: Date;
+	completed_date?: Date;
+	notes?: string;
+	created_at: Date;
+};
+
+export type WorkoutSessionsDb = {
+	id: number;
+	cycle_id: number;
+	lift_id: number;
+	week_number_in_cycle: number;
+	week_template_id: number;
+	planned_date: Date;
+	completed_date?: Date;
+	status: 'planned' | 'completed' | 'skipped';
+	notes?: string;
+	created_at: Date;
+};
