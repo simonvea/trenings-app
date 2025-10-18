@@ -46,6 +46,15 @@ export type TrainingMax = {
 	[key in MainLifts]: number;
 } & { updatedAt: Date };
 
+export type LiftsDb = {
+	id: number;
+	name: string;
+	current_training_max: number;
+	one_rep_max?: number;
+	created_at: Date;
+	updated_at: Date;
+};
+
 export type TrainingBlockDb = {
 	id: number;
 	name?: string;
@@ -69,7 +78,9 @@ export type TrainingCycleDb = {
 	cycle_number_in_block: number;
 	cycle_type: 'leader' | 'anchor' | '7th week';
 	seventh_week_template_id?: number;
+	seventh_week_name?: string;
 	supplemental_template_id?: number;
+	supplemental_name?: string;
 	start_date: Date;
 	end_date?: Date;
 	completed_date?: Date;
