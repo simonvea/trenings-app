@@ -25,9 +25,11 @@ where b.id = ?`
 	const cyclesResult = await platform?.env.trening
 		.prepare(
 			`SELECT c.*, supplemental.name as supplemental_name, seventh_week.name as seventh_week_name from cycles as c 
-INNER JOIN supplemental_templates as supplemental on supplemental.id = c.supplemental_template_id
-INNER JOIN supplemental_templates as seventh_week on seventh_week.id = c.seventh_week_template_id
-where block_id = ?`
+LEFT JOIN supplemental_templates as supplemental on supplemental.id = c.supplemental_template_id
+LEFT JOIN week_templates as seventh_week on seventh_week.id = c.seventh_week_template_id
+where block_id = ?
+ORDER BY c.cycle_number_in_block ASC
+`
 		)
 		.bind(blockId)
 		.run();

@@ -7,7 +7,6 @@ name TEXT NOT NULL UNIQUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
 INSERT INTO lifts (name, current_training_max, one_rep_max) VALUES
 ('Squat', 0, 0),
 ('Bench Press', 0, 0),
@@ -22,7 +21,7 @@ CREATE TABLE training_max_history (
     effective_date DATE NOT NULL,
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (lift_id) REFERENCES lifts(lift_id)
+    FOREIGN KEY (lift_id) REFERENCES lifts(id)
 );
 
 -- Assistance exercises

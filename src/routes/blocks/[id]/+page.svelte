@@ -7,9 +7,7 @@
 
 	const sortedLifts = lifts.sort((a, b) => a.id - b.id);
 
-	const currentCycleId = cycles
-		.filter((c) => !c.completed_date)
-		.sort((a, b) => a.cycle_number_in_block - b.cycle_number_in_block)[0]?.id;
+	const currentCycleId = cycles.filter((c) => !c.completed_date)[0]?.id; // list is already sorted from db so we can pick first.
 </script>
 
 <h1>{block.name}</h1>
@@ -59,7 +57,7 @@
 		{#each cycles as cycle (cycle.id)}
 			<tr onclick={() => goto('/cycles/' + cycle.id)}>
 				<td>{cycle.cycle_type}</td>
-				<td>{cycle.supplemental_template_id || cycle.seventh_week_template_id}</td>
+				<td>{cycle.supplemental_name || cycle.seventh_week_name}</td>
 				<td>
 					{#if !!cycle.completed_date}
 						{cycle.completed_date}
