@@ -23,13 +23,16 @@ CREATE TABLE IF NOT EXISTS training_blocks (
   FOREIGN KEY (lift_day_4_id) REFERENCES lifts(id)
 );
 
+INSERT INTO training_blocks (name, training_day_1, training_day_2, training_day_3, training_day_4, lift_day_1_id, lift_day_2_id, lift_day_3_id, lift_day_4_id, goals)
+VALUES ('Begynnelse 2025', 'monday', 'tuesday','thursday', 'friday', (SELECT id from lifts where name = 'Squat'), (SELECT id from lifts where name = 'Bench Press'), (SELECT id from lifts where name = 'Overhead Press'), (SELECT id from lifts where name = 'Deadlift'), 'Følge meg bra i musklene');
+
 -- a Training block consists of multiple cycles.
 -- Usually in a 2 leader, 1 anchor cycles, where there is a "7th week" between leader and anchor cycles
 CREATE TABLE IF NOT EXISTS cycles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     block_id INTEGER,
-    cycle_number INTEGER NOT NULL, -- The order in the traning block
-    cycle_type TEXT NOT NULL CHECK(block_type IN ('leader', 'anchor', '7th week')),
+    cycle_number_in_block INTEGER NOT NULL, -- The order in the traning block
+    cycle_type TEXT NOT NULL CHECK(cycle_type IN ('leader', 'anchor', '7th week')),
     seventh_week_template_id INTEGER, -- If 7th week we reference the type of implementation
     supplemental_template_id INTEGER,
     start_date DATE NOT NULL,
@@ -52,7 +55,7 @@ CREATE TABLE IF NOT EXISTS workout_sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     cycle_id INTEGER NOT NULL,
     lift_id INTEGER NOT NULL,
-    week_number INTEGER NOT NULL CHECK(week_number BETWEEN 1 and 3),
+    week_number_in_cycle INTEGER NOT NULL CHECK(week_number_in_cycle BETWEEN 1 and 3),
     week_template_id INTEGER NOT NULL, -- 5 / 3 / 1 / TM test etc
     planned_date DATE NOT NULL,
     completed_date DATE,
@@ -63,5 +66,4 @@ CREATE TABLE IF NOT EXISTS workout_sessions (
     FOREIGN KEY (lift_id) REFERENCES lifts(id),
     FOREIGN KEY (week_template_id) REFERENCES week_templates(id)
 );
-
 

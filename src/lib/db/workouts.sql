@@ -1,5 +1,5 @@
 
--- Individual sets within a workout (main work sets)
+-- Main work sets,The last main set for a workout (main work sets)
 CREATE TABLE main_work (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id INTEGER NOT NULL,
