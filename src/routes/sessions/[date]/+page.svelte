@@ -1,31 +1,41 @@
 <script lang="ts">
 	import { SvelteDate } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
+	import { enhance } from '$app/forms';
 
 	let { data, params }: PageProps = $props();
 
 	let { session, mainLift } = data;
 	let { date } = params;
 
+	const getDateString = (date: Date) => date.toJSON().slice(0, 10);
+
+	if (date == 'now') date = getDateString(new Date());
+
 	const sets = $state(mainLift?.sets.map((s) => ({ ...s, checked: false })));
 	const warmupSets = $state(mainLift?.warmupSets.map((s) => ({ ...s, checked: false })));
 	let supplementalSetsDone = $state(0);
 	let isDone = $derived(supplementalSetsDone == mainLift?.supplemental.sets);
 	let comment = $state(mainLift?.comment || '');
+	let suggestedAmrapReps = $state(0);
 
-	const onSubmit = (e: Event) => {
-		e.preventDefault();
-		console.table($state.snapshot(sets));
-		console.log($state.snapshot(supplementalSetsDone));
-		console.log($state.snapshot(comment));
-	};
-
-	const getDateString = (date: Date) => date.toJSON().slice(0, 10);
 	const today = new Date(date);
 	const tomorrow = new Date(new SvelteDate().setDate(today.getDate() + 1));
 	const yesterday = new Date(new SvelteDate().setDate(today.getDate() - 1));
 	const days = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
 	const todayName = days[today.getDay()];
+
+	const getSuggestedAmrapReps = (weight: number, estimated_max: number) => {
+		const constant = 0.0278;
+		const a = weight / (estimated_max * constant);
+		const b = (1 + constant) / constant;
+		return Math.round(-a + b);
+	};
+
+	const mainSet = mainLift.sets[mainLift.sets.length - 1];
+	if (mainSet.isAmrap) {
+		suggestedAmrapReps = getSuggestedAmrapReps(mainSet.weight, session.current_training_max);
+	}
 </script>
 
 <section data-sveltekit-reload class="nav">
@@ -37,7 +47,9 @@
 {#if !session}
 	<p>Ingen økt i dag, {todayName}!</p>
 {:else}
-	<form class="form" onsubmit={onSubmit}>
+	<form class="form" method="POST" use:enhance>
+		<input type="hidden" name="session_id" value={session.id} />
+		<input type="hidden" name="lift_id" value={session.lift_id} />
 		<section>
 			<h2>{mainLift.name}</h2>
 			<table>
@@ -49,7 +61,7 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each warmupSets as set (set)}
+					{#each warmupSets as set, index (set)}
 						<tr
 							onclick={() => (set.checked = !set.checked)}
 							class={[set.checked && 'warmup__set--done', 'warmup__set']}
@@ -57,16 +69,36 @@
 							<td>{set.reps}{set.isAmrap ? '+' : ''}</td>
 							<td>{set.weight} kg</td>
 							<td>
-								<input type="checkbox" bind:checked={set.checked} />
+								<input type="checkbox" name={'warmup_set_' + index} bind:checked={set.checked} />
 							</td>
 						</tr>
 					{/each}
-					{#each sets as set (set)}
-						<tr onclick={() => (set.checked = !set.checked)} class={set.checked ? 'set--done' : ''}>
-							<td>{set.reps}{set.isAmrap ? '+' : ''}</td>
-							<td>{set.weight} kg</td>
+					{#each sets as set, index (set)}
+						<tr
+							onclick={() => !set.isAmrap && (set.checked = !set.checked)}
+							class={set.checked ? 'set--done' : ''}
+						>
+							<td
+								>{set.reps}{set.isAmrap ? '+' : ''}
+								<input type="hidden" name={'set_' + (index + 1) + '_reps'} value={set.reps} />
+							</td>
 							<td>
-								<input type="checkbox" bind:checked={set.checked} />
+								<input type="hidden" name={'set_' + (index + 1) + '_weight'} value={set.weight} />
+								{set.weight} kg</td
+							>
+							<td>
+								<input type="hidden" name={'set_' + (index + 1) + '_amrap'} value={set.isAmrap} />
+								{#if set.isAmrap}
+									<input
+										class="set__amrap-reps"
+										type="number"
+										name={'set_' + (index + 1) + '_actual_reps'}
+										placeholder={suggestedAmrapReps.toString()}
+										onchange={(e) => (set.checked = !!e.target.value)}
+									/>
+								{:else}
+									<input type="checkbox" name={'work_set_' + index} bind:checked={set.checked} />
+								{/if}
 							</td>
 						</tr>
 					{/each}
@@ -95,17 +127,18 @@
 			<section>
 				<p>Ferdig! Flink!</p>
 			</section>
-			<section>
-				<button type="submit" disabled={!isDone}>Ferdig</button>
-			</section>
 		{/if}
 		<section class="comment">
 			<details>
 				<summary>
 					<h3>Kommentar</h3>
 				</summary>
-				<textarea cols="30" rows="5" bind:value={comment}></textarea>
+				<textarea cols="30" rows="5" name="comment" bind:value={comment}></textarea>
 			</details>
+		</section>
+		<section>
+			<input type="hidden" name="supplementalSetsDone" value={isDone} />
+			<button type="submit">Ferdig</button>
 		</section>
 	</form>
 {/if}
@@ -136,6 +169,11 @@
 	}
 	tr:hover {
 		background-color: azure;
+	}
+
+	.set__amrap-reps {
+		height: 2rem;
+		width: 3rem;
 	}
 
 	.set--done {
@@ -246,5 +284,11 @@
 		outline: none;
 		border-color: #007aff; /* iOS blue */
 		box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+	}
+
+	/* remove spinner on number input */
+	input[type='number']::-webkit-inner-spin-button,
+	input[type='number']::-webkit-outer-spin-button {
+		opacity: 1;
 	}
 </style>
