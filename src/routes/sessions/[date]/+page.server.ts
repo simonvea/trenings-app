@@ -36,7 +36,9 @@ export const actions = {
 			.prepare(
 				`
      INSERT INTO main_work (session_id, set_number, planned_weight, planned_reps, actual_weight, actual_reps, is_amrap, supplemental_done)
-     VALUES (?,?,?,?,?,?,?,?)
+     VALUES (?,?,?,?,?,?,?,?);
+
+     UPDATE workout_sessions SET status = 'completed' WHERE id = ?;
 `
 			)
 			.bind(
@@ -47,7 +49,8 @@ export const actions = {
 				plannedWeight,
 				isAmrap ? actualReps : plannedReps,
 				isAmrap,
-				supplementalSetsDone
+				supplementalSetsDone,
+				sessionId
 			)
 			.run();
 
