@@ -132,3 +132,39 @@ export type WorkoutSessionsDb = {
 	notes?: string;
 	created_at: Date;
 };
+
+export type MainWorkDb = {
+	id: number;
+	session_id: number;
+	set_number: number;
+	planned_weight: number;
+	planned_reps: number;
+	actual_weight?: number;
+	actual_reps?: number;
+	is_amrap?: boolean;
+	rpe?: number;
+	notes?: string;
+};
+
+export type SupplementalWorkDb = {
+	id: number;
+	session_id: number;
+	lift_id: number; // Ususall same as main lift, but could differ
+	template_id: number;
+	set_number: number;
+	planned_weight: number;
+	planned_reps: number;
+	actual_weight?: number;
+	actual_reps?: number;
+	notes: string;
+};
+
+export type AssistanceWorkDb = {
+	id: number;
+	session_id: number;
+	exercice_id: number;
+	sets?: number;
+	reps?: number;
+	weight?: number;
+	notes?: string;
+};

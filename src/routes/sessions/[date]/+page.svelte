@@ -32,8 +32,8 @@
 	};
 
 	const mainSet = mainLift?.sets[mainLift.sets.length - 1];
-	let suggestedAmrapReps = $state(mainSet.reps || 0);
-	if (mainSet.isAmrap) {
+	let suggestedAmrapReps = $state(mainSet?.reps || 0);
+	if (mainSet?.isAmrap) {
 		suggestedAmrapReps = getSuggestedAmrapReps(mainSet.weight, session.current_training_max);
 	}
 </script>
@@ -91,7 +91,7 @@
 								{#if set.isAmrap}
 									<input
 										class="set__amrap-reps"
-										type="number"
+										type="tel"
 										name={'set_' + (index + 1) + '_actual_reps'}
 										placeholder={suggestedAmrapReps.toString()}
 										onchange={(e) => (set.checked = !!e.target.value)}
@@ -154,14 +154,15 @@
 		flex-direction: row;
 		justify-content: space-around;
 	}
+
 	form {
-		width: 100%;
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
 	}
+
 	table {
-		width: 100%;
+		width: 360px;
 		border-collapse: collapse;
 	}
 
@@ -170,10 +171,6 @@
 		flex-direction: column;
 		align-items: center;
 		margin: 1rem 0;
-		width: 100%;
-	}
-	tr:hover {
-		background-color: azure;
 	}
 
 	.set__amrap-reps {
@@ -206,6 +203,7 @@
 		min-width: 1.6rem;
 		min-height: 1.6rem;
 		cursor: pointer;
+		position: relative;
 	}
 
 	input[type='checkbox']::before {
@@ -215,6 +213,20 @@
 		left: -12px;
 		right: -12px;
 		bottom: -12px;
+	}
+
+	button {
+		background-color: #04aa6d;
+		border-radius: 4px;
+		border: none;
+		color: white;
+		padding: 15px 32px;
+		text-align: center;
+		text-decoration: none;
+		display: inline-block;
+		font-size: 16px;
+		margin: 4px 2px;
+		cursor: pointer;
 	}
 
 	.comment {
@@ -241,11 +253,12 @@
 		align-items: center;
 		justify-content: space-between;
 		transition: background-color 0.2s ease;
-		-webkit-tap-highlight-color: transparent; /* Better mobile UX */
 	}
+
 	summary:hover {
 		background: #ebebeb;
 	}
+
 	summary::after {
 		content: '▼';
 		font-size: 0.75rem;
@@ -289,11 +302,5 @@
 		outline: none;
 		border-color: #007aff; /* iOS blue */
 		box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
-	}
-
-	/* remove spinner on number input */
-	input[type='number']::-webkit-inner-spin-button,
-	input[type='number']::-webkit-outer-spin-button {
-		opacity: 1;
 	}
 </style>
