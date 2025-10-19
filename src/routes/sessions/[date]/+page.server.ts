@@ -70,23 +70,25 @@ INNER JOIN week_templates as week on week.id = s.week_template_id
 	};
 
 	if (session.warmup_set_1_reps) {
-		mainLift.warmupSets.concat([
-			{
-				reps: session.warmup_set_1_reps,
-				weight: normalizeWeight(session.current_training_max * session.warmup_set_1_percentage!),
-				isAmrap: false
-			},
-			{
-				reps: session.warmup_set_2_reps!,
-				weight: normalizeWeight(session.current_training_max * session.warmup_set_2_percentage!),
-				isAmrap: false
-			},
-			{
-				reps: session.warmup_set_3_reps!,
-				weight: normalizeWeight(session.current_training_max * session.warmup_set_3_percentage!),
-				isAmrap: false
-			}
-		]);
+		mainLift.warmupSets.push(
+			...[
+				{
+					reps: session.warmup_set_1_reps,
+					weight: normalizeWeight(session.current_training_max * session.warmup_set_1_percentage!),
+					isAmrap: false
+				},
+				{
+					reps: session.warmup_set_2_reps!,
+					weight: normalizeWeight(session.current_training_max * session.warmup_set_2_percentage!),
+					isAmrap: false
+				},
+				{
+					reps: session.warmup_set_3_reps!,
+					weight: normalizeWeight(session.current_training_max * session.warmup_set_3_percentage!),
+					isAmrap: false
+				}
+			]
+		);
 	}
 
 	return { session, mainLift };

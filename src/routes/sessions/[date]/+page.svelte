@@ -1,11 +1,14 @@
 <script lang="ts">
+	import { SvelteDate } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
+	let { data, params }: PageProps = $props();
 
-	const { session, mainLift } = data;
+	let { session, mainLift } = data;
+	let { date } = params;
 
 	const sets = $state(mainLift?.sets.map((s) => ({ ...s, checked: false })));
+	const warmupSets = $state(mainLift?.warmupSets.map((s) => ({ ...s, checked: false })));
 	let supplementalSetsDone = $state(0);
 	let isDone = $derived(supplementalSetsDone == mainLift?.supplemental.sets);
 	let comment = $state(mainLift?.comment || '');
@@ -16,10 +19,23 @@
 		console.log($state.snapshot(supplementalSetsDone));
 		console.log($state.snapshot(comment));
 	};
+
+	const getDateString = (date: Date) => date.toJSON().slice(0, 10);
+	const today = new Date(date);
+	const tomorrow = new Date(new SvelteDate().setDate(today.getDate() + 1));
+	const yesterday = new Date(new SvelteDate().setDate(today.getDate() - 1));
+	const days = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
+	const todayName = days[today.getDay()];
 </script>
 
+<section data-sveltekit-reload class="nav">
+	<a href={`/sessions/${getDateString(yesterday)}`}>I går</a>
+	<p>{todayName}: {today.toLocaleDateString('no')}</p>
+	<a href={`/sessions/${getDateString(tomorrow)}`}>I morgen</a>
+</section>
+
 {#if !session}
-	<p>Ingen økt i dag!</p>
+	<p>Ingen økt i dag, {todayName}!</p>
 {:else}
 	<form class="form" onsubmit={onSubmit}>
 		<section>
@@ -33,6 +49,18 @@
 					</tr>
 				</thead>
 				<tbody>
+					{#each warmupSets as set (set)}
+						<tr
+							onclick={() => (set.checked = !set.checked)}
+							class={[set.checked && 'warmup__set--done', 'warmup__set']}
+						>
+							<td>{set.reps}{set.isAmrap ? '+' : ''}</td>
+							<td>{set.weight} kg</td>
+							<td>
+								<input type="checkbox" bind:checked={set.checked} />
+							</td>
+						</tr>
+					{/each}
 					{#each sets as set (set)}
 						<tr onclick={() => (set.checked = !set.checked)} class={set.checked ? 'set--done' : ''}>
 							<td>{set.reps}{set.isAmrap ? '+' : ''}</td>
@@ -83,6 +111,11 @@
 {/if}
 
 <style>
+	.nav {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-around;
+	}
 	form {
 		width: 100%;
 		display: flex;
@@ -114,6 +147,14 @@
 		text-align: center;
 		padding: 1rem;
 		border-bottom: 1px solid;
+	}
+
+	.warmup__set {
+		background-color: lightblue;
+	}
+
+	.warmup__set--done {
+		background-color: lightgreen;
 	}
 
 	input[type='checkbox'] {
