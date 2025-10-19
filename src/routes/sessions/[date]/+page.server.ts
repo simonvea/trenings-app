@@ -9,6 +9,7 @@ import type {
 	WeekTemplateDb,
 	WorkoutSessionsDb
 } from '$lib/types';
+import type { Actions } from '@sveltejs/kit';
 import type { PageServerData } from './$types';
 
 type SessionDb = WorkoutSessionsDb &
@@ -16,6 +17,43 @@ type SessionDb = WorkoutSessionsDb &
 	WeekTemplateDb &
 	LiftsDb &
 	SupplementalTemplateDb & { weekName: string; templateName: string; liftName: string };
+
+export const actions = {
+	default: async ({ request, platform }) => {
+		const data = await request.formData();
+
+		const sessionId = Number(data.get('session_id'));
+		const setNumber = 3;
+		// const liftId = data.get('lift_id');
+
+		const plannedWeight = Number(data.get('set_3_weight'));
+		const plannedReps = Number(data.get('set_3_reps'));
+		const actualReps = Number(data.get('set_3_actual_reps'));
+		const isAmrap = data.get('set_3_amrap') == 'true';
+		const supplementalSetsDone = data.get('supplemental_sets_done') == 'true';
+
+		const result = await platform?.env.trening
+			.prepare(
+				`
+     INSERT INTO main_work (session_id, set_number, planned_weight, planned_reps, actual_weight, actual_reps, is_amrap, supplemental_done)
+     VALUES (?,?,?,?,?,?,?,?)
+`
+			)
+			.bind(
+				sessionId,
+				setNumber,
+				plannedWeight,
+				plannedReps,
+				plannedWeight,
+				isAmrap ? actualReps : plannedReps,
+				isAmrap,
+				supplementalSetsDone
+			)
+			.run();
+
+		return { success: result?.success };
+	}
+} satisfies Actions;
 
 export const load: PageServerData = async ({ platform, params }) => {
 	let { date } = params;

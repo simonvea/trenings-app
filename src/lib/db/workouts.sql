@@ -9,6 +9,7 @@ CREATE TABLE main_work (
     actual_weight REAL,
     actual_reps INTEGER,
     is_amrap BOOLEAN DEFAULT 0,
+    supplemental_done BOOLEAN NOT NULL,
     rpe REAL, -- Rate of Perceived Exertion (optional)
     notes TEXT,
     FOREIGN KEY (session_id) REFERENCES workout_sessions(session_id)

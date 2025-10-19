@@ -17,7 +17,6 @@
 	let supplementalSetsDone = $state(0);
 	let isDone = $derived(supplementalSetsDone == mainLift?.supplemental.sets);
 	let comment = $state(mainLift?.comment || '');
-	let suggestedAmrapReps = $state(0);
 
 	const today = new Date(date);
 	const tomorrow = new Date(new SvelteDate().setDate(today.getDate() + 1));
@@ -32,7 +31,8 @@
 		return Math.round(-a + b);
 	};
 
-	const mainSet = mainLift.sets[mainLift.sets.length - 1];
+	const mainSet = mainLift?.sets[mainLift.sets.length - 1];
+	let suggestedAmrapReps = $state(mainSet.reps || 0);
 	if (mainSet.isAmrap) {
 		suggestedAmrapReps = getSuggestedAmrapReps(mainSet.weight, session.current_training_max);
 	}
@@ -97,7 +97,11 @@
 										onchange={(e) => (set.checked = !!e.target.value)}
 									/>
 								{:else}
-									<input type="checkbox" name={'work_set_' + index} bind:checked={set.checked} />
+									<input
+										type="checkbox"
+										name={'set_' + (index + 1) + '_done'}
+										bind:checked={set.checked}
+									/>
 								{/if}
 							</td>
 						</tr>
@@ -126,6 +130,7 @@
 		{#if isDone}
 			<section>
 				<p>Ferdig! Flink!</p>
+				<button type="submit">Ferdig</button>
 			</section>
 		{/if}
 		<section class="comment">
@@ -137,7 +142,7 @@
 			</details>
 		</section>
 		<section>
-			<input type="hidden" name="supplementalSetsDone" value={isDone} />
+			<input type="hidden" name="supplemental_set_done" value={isDone} />
 			<button type="submit">Ferdig</button>
 		</section>
 	</form>

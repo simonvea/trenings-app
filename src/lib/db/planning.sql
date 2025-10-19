@@ -67,3 +67,4 @@ CREATE TABLE IF NOT EXISTS workout_sessions (
     FOREIGN KEY (week_template_id) REFERENCES week_templates(id)
 );
 
+CREATE INDEX idx_workout_sessions_date ON workout_sessions(planned_date);
