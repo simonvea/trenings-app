@@ -88,6 +88,38 @@ export type TrainingCycleDb = {
 	created_at: Date;
 };
 
+export type WeekTemplateDb = {
+	id: number;
+	week_number: number;
+	name: string;
+	warmup_set_1_percentage?: number;
+	warmup_set_1_reps?: number;
+	warmup_set_2_percentage?: number;
+	warmup_set_2_reps?: number;
+	warmup_set_3_percentage?: number;
+	warmup_set_3_reps?: number;
+	set_1_percentage: number;
+	set_1_reps: number;
+	set_2_percentage: number;
+	set_2_reps: number;
+	set_3_percentage: number;
+	set_3_reps: number; // negative means AMRAP (as many reps as possible)
+	set_4_percentage: number; // Set only applicable for "7th week"
+	set_4_reps: number;
+};
+
+export type SupplementalTemplateDb = {
+	id: number;
+	name: string;
+	description?: string;
+	sets: number;
+	reps: number;
+	weight_calculation: 'first_set' | 'fixed_percentage' | 'custom';
+	fixed_percentage?: number;
+	notes?: string;
+	created_at: Date;
+};
+
 export type WorkoutSessionsDb = {
 	id: number;
 	cycle_id: number;
