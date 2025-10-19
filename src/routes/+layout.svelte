@@ -1,11 +1,12 @@
 <script lang="ts">
+	import type { LayoutProps } from './$types';
+	import { page } from '$app/state';
 	import favicon from '$lib/assets/favicon.svg';
 
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
-
-	let { children } = $props();
+	let { children }: LayoutProps = $props();
 	let menuOpen = $state(false);
+
+	const appTitle = page.data.title;
 
 	function toggleMenu() {
 		menuOpen = !menuOpen;
@@ -13,14 +14,6 @@
 
 	function closeMenu() {
 		menuOpen = false;
-	}
-
-	function goBack() {
-		window.history.back();
-	}
-
-	function goNext() {
-		window.history.forward();
 	}
 </script>
 
@@ -35,15 +28,14 @@
 			<span class:open={menuOpen}></span>
 			<span class:open={menuOpen}></span>
 		</button>
-		<h1 class="app-title">My PWA</h1>
 		<div class="header-spacer"></div>
+		<h1 class="app-title">{appTitle}</h1>
 	</header>
 
 	<aside class="sidebar" class:open={menuOpen}>
 		<nav class="nav">
-			<a href="/" onclick={closeMenu}>Home</a>
-			<a href="/main" onclick={closeMenu}>Main lift</a>
-			<a href="/assistance" onclick={closeMenu}>Assistance lifts</a>
+			<a href="/" onclick={closeMenu}>Hjem</a>
+			<a href="/sessions/now" onclick={closeMenu}>Dagens økt</a>
 		</nav>
 	</aside>
 
@@ -55,37 +47,6 @@
 	<main class="main">
 		{@render children?.()}
 	</main>
-
-	<footer class="footer">
-		<button class="footer-btn" onclick={goBack}>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="24"
-				height="24"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-			>
-				<path d="M19 12H5M12 19l-7-7 7-7" />
-			</svg>
-			<span>Back</span>
-		</button>
-		<button class="footer-btn" onclick={goNext}>
-			<span>Next</span>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="24"
-				height="24"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-			>
-				<path d="M5 12h14M12 5l7 7-7 7" />
-			</svg>
-		</button>
-	</footer>
 </div>
 
 <style>
@@ -141,7 +102,6 @@
 		justify-content: center;
 		align-items: center;
 		gap: 5px;
-		margin-right: 1rem;
 	}
 
 	.hamburger span {
@@ -267,11 +227,6 @@
 	.footer-btn:active {
 		transform: scale(0.95);
 		background: #e8e8e8;
-	}
-
-	.footer-btn svg {
-		width: 20px;
-		height: 20px;
 	}
 
 	/* PWA Safe Areas */
