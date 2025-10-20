@@ -5,6 +5,7 @@
 
 	let { children }: LayoutProps = $props();
 	let menuOpen = $state(false);
+	const today = new Date().toJSON().slice(0, 10);
 
 	const appTitle = page.data.title;
 
@@ -35,7 +36,7 @@
 	<aside class="sidebar" class:open={menuOpen}>
 		<nav class="nav">
 			<a href="/" onclick={closeMenu}>Hjem</a>
-			<a href="/sessions/now" onclick={closeMenu}>Dagens økt</a>
+			<a href={'/sessions/' + today} onclick={closeMenu}>Dagens økt</a>
 		</nav>
 	</aside>
 

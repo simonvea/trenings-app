@@ -3,6 +3,7 @@
 	const { data }: PageProps = $props();
 
 	const { blocks } = data;
+	const today = new Date().toJSON().slice(0, 10);
 </script>
 
 <h1>Velkommen til en ny økt!</h1>
@@ -16,3 +17,4 @@
 		</li>
 	{/each}
 </ul>
+<a href={'/sessions/' + today}>Dagens økt</a>

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { SvelteDate } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
-	import { enhance } from '$app/forms';
 
 	let { data, params }: PageProps = $props();
 
