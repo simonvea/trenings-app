@@ -12,11 +12,13 @@
 
 	if (date == 'now') date = getDateString(new Date());
 
-	const sets = $state(mainLift?.sets.map((s) => ({ ...s, checked: false })));
-	const warmupSets = $state(mainLift?.warmupSets.map((s) => ({ ...s, checked: false })));
+	const completed = session.status == 'completed';
+	const sets = $state(mainLift?.sets.map((s) => ({ ...s, checked: completed })));
+	const warmupSets = $state(mainLift?.warmupSets.map((s) => ({ ...s, checked: completed })));
 	let supplementalSetsDone = $state(0);
 	let isDone = $derived(supplementalSetsDone == mainLift?.supplemental.sets);
 	let comment = $state(mainLift?.comment || '');
+	let loading = $state(false);
 
 	const today = new Date(date);
 	const tomorrow = new Date(new SvelteDate().setDate(today.getDate() + 1));
@@ -39,15 +41,21 @@
 </script>
 
 <section data-sveltekit-reload class="nav">
-	<a href={`/sessions/${getDateString(yesterday)}`}>I går</a>
+	<a href={`/sessions/${getDateString(yesterday)}`}>forrige</a>
 	<p>{todayName}: {today.toLocaleDateString('no')}</p>
-	<a href={`/sessions/${getDateString(tomorrow)}`}>I morgen</a>
+	<a href={`/sessions/${getDateString(tomorrow)}`}>neste</a>
 </section>
 
 {#if !session}
 	<p>Ingen økt i dag, {todayName}!</p>
 {:else}
-	<form class="form" method="POST" use:enhance>
+	{#if completed}
+		<section class="completed">
+			<p>Denne økta er gjort!</p>
+		</section>
+	{/if}
+
+	<form class="form" method="POST" onsubmit={() => (loading = true)}>
 		<input type="hidden" name="session_id" value={session.session_id} />
 		<input type="hidden" name="lift_id" value={session.lift_id} />
 		<section>
@@ -130,7 +138,10 @@
 		{#if isDone}
 			<section>
 				<p>Ferdig! Flink!</p>
-				<button type="submit">Ferdig</button>
+				{#if loading}
+					<span>Sender data!</span>
+				{/if}
+				<button type="submit" disabled={loading || completed}>Ferdig</button>
 			</section>
 		{/if}
 		<section class="comment">
@@ -143,7 +154,10 @@
 		</section>
 		<section>
 			<input type="hidden" name="supplemental_sets_done" value={isDone} />
-			<button type="submit">Ferdig</button>
+			{#if loading}
+				<span>Sender data!</span>
+			{/if}
+			<button type="submit" disabled={loading || completed}>Ferdig</button>
 		</section>
 	</form>
 {/if}
