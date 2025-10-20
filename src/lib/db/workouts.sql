@@ -12,7 +12,7 @@ CREATE TABLE main_work (
     supplemental_done BOOLEAN NOT NULL,
     rpe REAL, -- Rate of Perceived Exertion (optional)
     notes TEXT,
-    FOREIGN KEY (session_id) REFERENCES workout_sessions(session_id)
+    FOREIGN KEY (session_id) REFERENCES workout_sessions(id)
 );
 
 -- Supplemental work performed during sessions (separate from main work)
