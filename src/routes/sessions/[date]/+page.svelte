@@ -48,7 +48,7 @@
 	<p>Ingen økt i dag, {todayName}!</p>
 {:else}
 	<form class="form" method="POST" use:enhance>
-		<input type="hidden" name="session_id" value={session.id} />
+		<input type="hidden" name="session_id" value={session.session_id} />
 		<input type="hidden" name="lift_id" value={session.lift_id} />
 		<section>
 			<h2>{mainLift.name}</h2>
@@ -142,7 +142,7 @@
 			</details>
 		</section>
 		<section>
-			<input type="hidden" name="supplemental_set_done" value={isDone} />
+			<input type="hidden" name="supplemental_sets_done" value={isDone} />
 			<button type="submit">Ferdig</button>
 		</section>
 	</form>

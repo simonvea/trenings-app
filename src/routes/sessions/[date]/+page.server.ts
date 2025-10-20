@@ -16,7 +16,12 @@ type SessionDb = WorkoutSessionsDb &
 	TrainingCycleDb &
 	WeekTemplateDb &
 	LiftsDb &
-	SupplementalTemplateDb & { weekName: string; templateName: string; liftName: string };
+	SupplementalTemplateDb & {
+		weekName: string;
+		templateName: string;
+		liftName: string;
+		session_id: number;
+	};
 
 export const actions = {
 	default: async ({ request, platform }) => {
@@ -32,13 +37,11 @@ export const actions = {
 		const isAmrap = data.get('set_3_amrap') == 'true';
 		const supplementalSetsDone = data.get('supplemental_sets_done') == 'true';
 
-		const result = await platform?.env.trening
+		const addWorkStatement = platform?.env.trening
 			.prepare(
 				`
      INSERT INTO main_work (session_id, set_number, planned_weight, planned_reps, actual_weight, actual_reps, is_amrap, supplemental_done)
      VALUES (?,?,?,?,?,?,?,?);
-
-     UPDATE workout_sessions SET status = 'completed' WHERE id = ?;
 `
 			)
 			.bind(
@@ -49,12 +52,18 @@ export const actions = {
 				plannedWeight,
 				isAmrap ? actualReps : plannedReps,
 				isAmrap,
-				supplementalSetsDone,
-				sessionId
-			)
-			.run();
+				supplementalSetsDone
+			);
 
-		return { success: result?.success };
+		const updateSessionStatement = platform?.env.trening
+			.prepare(
+				"UPDATE workout_sessions SET status = 'completed', completed_date = date('now') WHERE id = ?"
+			)
+			.bind(sessionId);
+
+		const result = await platform?.env.trening.batch([addWorkStatement!, updateSessionStatement!]);
+
+		return { success: result?.every((r) => r.success) };
 	}
 } satisfies Actions;
 
@@ -64,7 +73,7 @@ export const load: PageServerData = async ({ platform, params }) => {
 
 	const sessionResult = await platform?.env.trening
 		.prepare(
-			`SELECT *, lifts.name AS liftName, week.name AS weekName, template.name AS templateName FROM workout_sessions as s
+			`SELECT *, s.id AS session_id, lifts.name AS liftName, week.name AS weekName, template.name AS templateName FROM workout_sessions as s
 INNER JOIN lifts on lifts.id = s.lift_id
 INNER JOIN cycles on cycles.id = s.cycle_id
 LEFT JOIN supplemental_templates template on template.id = cycles.supplemental_template_id
