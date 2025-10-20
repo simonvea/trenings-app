@@ -11,6 +11,7 @@ import type {
 } from '$lib/types';
 import type { Actions } from '@sveltejs/kit';
 import type { PageServerData } from './$types';
+import { translateLiftName } from '$lib/helpers';
 
 type SessionDb = WorkoutSessionsDb &
 	TrainingCycleDb &
@@ -141,7 +142,9 @@ INNER JOIN week_templates as week on week.id = s.week_template_id
 		);
 	}
 
-	return { session, mainLift };
+	const title = `Uke ${session.week_number_in_cycle}`;
+
+	return { session, mainLift, title };
 };
 
 function calculateSupplementalWeight({
@@ -154,16 +157,4 @@ function calculateSupplementalWeight({
 	if (weight_calculation == 'fixed_percentage') return current_training_max * fixed_percentage!;
 	// the 'custom' option. Not defined how to use yet..
 	return current_training_max;
-}
-
-const liftTranslations: Record<string, MainLifts> = {
-	Squat: 'Knebøy',
-	Deadlift: 'Markløft',
-	'Overhead Press': 'Skulderpress',
-	'Bench Press': 'Benkpress'
-};
-
-function translateLiftName(lift: string): MainLifts {
-	if (!(lift in liftTranslations)) throw new Error('Unknown lift name!');
-	return liftTranslations[lift];
 }

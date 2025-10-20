@@ -44,15 +44,15 @@ export type SupplementalTemplate = {
 
 export type TrainingMax = {
 	[key in MainLifts]: number;
-} & { updatedAt: Date };
+} & { updatedAt: string };
 
 export type LiftsDb = {
 	id: number;
 	name: string;
 	current_training_max: number;
 	one_rep_max?: number;
-	created_at: Date;
-	updated_at: Date;
+	created_at: string;
+	updated_at: string;
 };
 
 export type TrainingBlockDb = {
@@ -68,8 +68,8 @@ export type TrainingBlockDb = {
 	lift_day_4_id?: number;
 	goals?: string;
 	notes?: string;
-	created_at?: Date;
-	completed_date: Date;
+	created_at?: string;
+	completed_date: string;
 };
 
 export type TrainingCycleDb = {
@@ -81,11 +81,11 @@ export type TrainingCycleDb = {
 	seventh_week_name?: string;
 	supplemental_template_id?: number;
 	supplemental_name?: string;
-	start_date: Date;
-	end_date?: Date;
-	completed_date?: Date;
+	start_date: string;
+	end_date?: string;
+	completed_date?: string;
 	notes?: string;
-	created_at: Date;
+	created_at: string;
 };
 
 export type WeekTemplateDb = {
@@ -117,7 +117,7 @@ export type SupplementalTemplateDb = {
 	weight_calculation: 'first_set' | 'fixed_percentage' | 'custom';
 	fixed_percentage?: number;
 	notes?: string;
-	created_at: Date;
+	created_at: string;
 };
 
 export type WorkoutSessionsDb = {
@@ -126,11 +126,11 @@ export type WorkoutSessionsDb = {
 	lift_id: number;
 	week_number_in_cycle: number;
 	week_template_id: number;
-	planned_date: Date;
-	completed_date?: Date;
+	planned_date: string;
+	completed_date?: string;
 	status: 'planned' | 'completed' | 'skipped';
 	notes?: string;
-	created_at: Date;
+	created_at: string;
 };
 
 export type MainWorkDb = {
