@@ -2,7 +2,6 @@ import { normalizeWeight } from '$lib/core';
 import type {
 	LiftsDb,
 	MainLift,
-	MainLifts,
 	SupplementalTemplateDb,
 	SupplementalWork,
 	TrainingCycleDb,
@@ -12,6 +11,7 @@ import type {
 import type { Actions } from '@sveltejs/kit';
 import type { PageServerData } from './$types';
 import { translateLiftName } from '$lib/helpers';
+import { sql } from '$lib/server/db';
 
 type SessionDb = WorkoutSessionsDb &
 	TrainingCycleDb &
@@ -25,7 +25,7 @@ type SessionDb = WorkoutSessionsDb &
 	};
 
 export const actions = {
-	default: async ({ request, platform }) => {
+	default: async ({ request }) => {
 		const data = await request.formData();
 
 		const sessionId = Number(data.get('session_id'));
@@ -38,54 +38,32 @@ export const actions = {
 		const isAmrap = data.get('set_3_amrap') == 'true';
 		const supplementalSetsDone = data.get('supplemental_sets_done') == 'true';
 
-		const addWorkStatement = platform?.env.trening
-			.prepare(
-				`
+		const addWorkStatement = sql.run`
      INSERT INTO main_work (session_id, set_number, planned_weight, planned_reps, actual_weight, actual_reps, is_amrap, supplemental_done)
-     VALUES (?,?,?,?,?,?,?,?);
-`
-			)
-			.bind(
-				sessionId,
-				setNumber,
-				plannedWeight,
-				plannedReps,
-				plannedWeight,
-				isAmrap ? actualReps : plannedReps,
-				isAmrap,
-				supplementalSetsDone
-			);
+     VALUES (${sessionId},${setNumber},${plannedWeight},${plannedReps},${plannedWeight},${isAmrap ? actualReps : plannedReps},${isAmrap},${supplementalSetsDone})
+`;
 
-		const updateSessionStatement = platform?.env.trening
-			.prepare(
-				"UPDATE workout_sessions SET status = 'completed', completed_date = date('now') WHERE id = ?"
-			)
-			.bind(sessionId);
+		const updateSessionStatement = sql.run`UPDATE workout_sessions SET status = 'completed', completed_date = date('now') WHERE id = ${sessionId}`;
 
-		const result = await platform?.env.trening.batch([addWorkStatement!, updateSessionStatement!]);
+		console.log('addResult', addWorkStatement);
+		console.info('updateSessionStatement', updateSessionStatement);
 
-		return { success: result?.every((r) => r.success) };
+		return { success: true };
 	}
 } satisfies Actions;
 
-export const load: PageServerData = async ({ platform, params }) => {
+export const load: PageServerData = async ({ params }) => {
 	let { date } = params;
 	if (!date) date = 'now';
 
-	const sessionResult = await platform?.env.trening
-		.prepare(
-			`SELECT *, s.id AS session_id, lifts.name AS liftName, week.name AS weekName, template.name AS templateName FROM workout_sessions as s
+	const session =
+		sql.get`SELECT *, s.id AS session_id, lifts.name AS liftName, week.name AS weekName, template.name AS templateName FROM workout_sessions as s
 INNER JOIN lifts on lifts.id = s.lift_id
 INNER JOIN cycles on cycles.id = s.cycle_id
 LEFT JOIN supplemental_templates template on template.id = cycles.supplemental_template_id
 INNER JOIN week_templates as week on week.id = s.week_template_id
- where planned_date = ?
-`
-		)
-		.bind(date)
-		.run();
-
-	const session = sessionResult?.results?.[0] as SessionDb;
+ where planned_date = ${date}
+` as SessionDb;
 
 	if (!session) return {};
 

@@ -1,9 +1,10 @@
 import type { PageServerLoad } from './$types';
 import type { TrainingBlockDb } from '$lib/types';
+import { sql } from '$lib/server/db';
 
-export const load: PageServerLoad = async ({ platform }) => {
-	const result = await platform?.env.trening.prepare('SELECT name, id FROM training_blocks').run();
-	const blocks = (result?.results as Pick<TrainingBlockDb, 'id' | 'name'>[]) || [];
+export const load: PageServerLoad = async () => {
+	const blocks =
+		(sql.all`SELECT name, id FROM training_blocks` as Pick<TrainingBlockDb, 'id' | 'name'>[]) || [];
 	return {
 		blocks
 	};

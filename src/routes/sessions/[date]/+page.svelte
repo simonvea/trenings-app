@@ -11,7 +11,7 @@
 
 	if (date == 'now') date = getDateString(new Date());
 
-	const completed = session.status == 'completed';
+	const completed = session?.status == 'completed';
 	const sets = $state(mainLift?.sets.map((s) => ({ ...s, checked: completed })));
 	const warmupSets = $state(mainLift?.warmupSets.map((s) => ({ ...s, checked: completed })));
 	let supplementalSetsDone = $state(0);
