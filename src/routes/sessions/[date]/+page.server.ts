@@ -35,8 +35,8 @@ export const actions = {
 		const plannedWeight = Number(data.get('set_3_weight'));
 		const plannedReps = Number(data.get('set_3_reps'));
 		const actualReps = Number(data.get('set_3_actual_reps'));
-		const isAmrap = data.get('set_3_amrap') == 'true';
-		const supplementalSetsDone = data.get('supplemental_sets_done') == 'true';
+		const isAmrap = data.get('set_3_amrap') == 'true' ? 1 : 0;
+		const supplementalSetsDone = data.get('supplemental_sets_done') == 'true' ? 1 : 0;
 
 		const addWorkStatement = sql.run`
      INSERT INTO main_work (session_id, set_number, planned_weight, planned_reps, actual_weight, actual_reps, is_amrap, supplemental_done)
