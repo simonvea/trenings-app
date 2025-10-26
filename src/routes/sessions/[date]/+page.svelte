@@ -1,10 +1,17 @@
 <script lang="ts">
 	import { SvelteDate } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
+	import AssistanceSelect from './assistance-select.svelte';
+
+	try {
+		navigator.wakeLock?.request('screen');
+	} catch (e) {
+		console.error('unable to lock screen', (e as Error)?.message);
+	}
 
 	let { data, params }: PageProps = $props();
 
-	let { session, mainLift } = data;
+	let { session, mainLift, exercises } = data;
 	let { date } = params;
 
 	const getDateString = (date: Date) => date.toJSON().slice(0, 10);
@@ -143,6 +150,25 @@
 				</tbody>
 			</table>
 		</section>
+		<section>
+			<h2>Assistanse</h2>
+			<section>
+				<h3>Pull</h3>
+				<AssistanceSelect name="pull" exercises={exercises.filter((e) => e.category == 'pull')} />
+			</section>
+			<section>
+				<h3>Push</h3>
+				<AssistanceSelect name="push" exercises={exercises.filter((e) => e.category == 'push')} />
+			</section>
+
+			<section>
+				<h3>Kjerne/Ben</h3>
+				<AssistanceSelect
+					name="core"
+					exercises={exercises.filter((e) => e.category == 'legs/core')}
+				/>
+			</section>
+		</section>
 		{#if isDone}
 			<section>
 				<p>Ferdig! Flink!</p>
@@ -177,6 +203,10 @@
 		justify-content: space-around;
 	}
 
+	h2,
+	h3 {
+		margin-top: 2rem 0;
+	}
 	form {
 		display: flex;
 		flex-direction: column;
@@ -192,7 +222,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		margin: 1rem 0;
+		margin: 0;
 	}
 
 	.set__amrap-reps {

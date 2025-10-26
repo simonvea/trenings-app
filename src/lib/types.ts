@@ -168,3 +168,11 @@ export type AssistanceWorkDb = {
 	weight?: number;
 	notes?: string;
 };
+
+export type AssistanceExerciseDb = {
+	id: number;
+	name: string;
+	category?: string;
+	description?: string;
+	created_at: string;
+};

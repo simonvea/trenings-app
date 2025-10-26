@@ -6,7 +6,8 @@ import type {
 	SupplementalWork,
 	TrainingCycleDb,
 	WeekTemplateDb,
-	WorkoutSessionsDb
+	WorkoutSessionsDb,
+	AssistanceExcerciseDb
 } from '$lib/types';
 import type { Actions } from '@sveltejs/kit';
 import type { PageServerData } from './$types';
@@ -67,6 +68,8 @@ INNER JOIN week_templates as week on week.id = s.week_template_id
 
 	if (!session) return {};
 
+	const exercises = sql.all`SELECT * FROM assistance_exercises` as AssistanceExcerciseDb[];
+
 	// TODO: handle non-supplemental weeks
 	const supplemental: SupplementalWork = {
 		sets: session.sets,
@@ -122,7 +125,7 @@ INNER JOIN week_templates as week on week.id = s.week_template_id
 
 	const title = `Uke ${session.week_number_in_cycle}`;
 
-	return { session, mainLift, title };
+	return { session, mainLift, title, exercises };
 };
 
 function calculateSupplementalWeight({
