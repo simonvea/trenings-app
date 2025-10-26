@@ -15,7 +15,9 @@
 	const sets = $state(mainLift?.sets.map((s) => ({ ...s, checked: completed })));
 	const warmupSets = $state(mainLift?.warmupSets.map((s) => ({ ...s, checked: completed })));
 	let supplementalSetsDone = $state(0);
-	let isDone = $derived(supplementalSetsDone == mainLift?.supplemental.sets);
+	let isDone = $derived(
+		supplementalSetsDone == mainLift?.supplemental.sets && sets.every((s) => s.checked)
+	);
 	let comment = $state(mainLift?.comment || '');
 	let loading = $state(false);
 
@@ -121,14 +123,21 @@
 						<th>Kg</th>
 						<th>Gjennomført</th>
 					</tr>
-					<tr
-						class={['supplemental', { 'set--done': isDone }]}
-						onclick={() => !isDone && supplementalSetsDone++}
-					>
+					<tr class={['supplemental', { 'set--done': isDone }]}>
 						<td>{mainLift.supplemental.sets}x{mainLift.supplemental.reps}</td>
 						<td>{mainLift.supplemental.weight} kg</td>
 						<td class="supplemental__done">
+							<button
+								type="button"
+								onclick={() => supplementalSetsDone > 0 && supplementalSetsDone--}>-</button
+							>
 							<span>{supplementalSetsDone}</span>
+							<button
+								type="button"
+								onclick={() =>
+									supplementalSetsDone < mainLift.supplemental.reps && supplementalSetsDone++}
+								>+</button
+							>
 						</td>
 					</tr>
 				</tbody>
