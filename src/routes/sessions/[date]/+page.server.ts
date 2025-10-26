@@ -6,8 +6,7 @@ import type {
 	SupplementalWork,
 	TrainingCycleDb,
 	WeekTemplateDb,
-	WorkoutSessionsDb,
-	AssistanceExcerciseDb
+	WorkoutSessionsDb
 } from '$lib/types';
 import type { Actions } from '@sveltejs/kit';
 import type { PageServerData } from './$types';

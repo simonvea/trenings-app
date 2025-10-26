@@ -1,16 +1,44 @@
 <script lang="ts">
 	import type { AssistanceExerciseDb } from '$lib/types';
+	import { onMount } from 'svelte';
 
 	let sets = $state([] as string[]);
 	const { name, exercises }: { name: string; exercises: AssistanceExerciseDb[] } = $props();
+	let history = $state({ reps: 0, weight: 0 } as { reps: number; weight: number });
+	let loading = $state(true);
 
 	const totalReps = $derived(sets.reduce((tot, set) => (tot += Number(set)), 0));
+
+	async function updateHistory(id: number) {
+		loading = true;
+		const res = await fetch('/history/exercises/' + id);
+		if (!res.ok) {
+			loading = false;
+			return;
+		}
+
+		const data = await res.json();
+
+		const { reps, weight } = data[0] || { reps: 0, weight: 0 };
+
+		history = { reps, weight };
+		loading = false;
+	}
+
+	onMount(() => updateHistory(exercises[0].id));
 </script>
 
 <div class="container">
 	<p>Reps totalt: {totalReps}</p>
+	{#if loading}
+		<p>Henter historie...</p>
+	{:else if history.reps == 0}
+		<p></p>
+	{:else}
+		<p>Sist: {history.reps} reps x {history.weight} kg</p>
+	{/if}
 	<div class="exercise">
-		<select {name}>
+		<select {name} onchange={(e) => updateHistory(e.target.value)}>
 			{#each exercises as exercise (exercise.id)}
 				<option value={exercise.id}>{exercise.name}</option>
 			{/each}
