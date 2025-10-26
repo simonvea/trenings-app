@@ -9,14 +9,19 @@
 
 <div class="container">
 	<p>Reps totalt: {totalReps}</p>
-	<select {name}>
-		{#each exercises as exercise (exercise.id)}
-			<option value={exercise.id}>{exercise.name}</option>
-		{/each}
-	</select>
+	<div class="exercise">
+		<select {name}>
+			{#each exercises as exercise (exercise.id)}
+				<option value={exercise.id}>{exercise.name}</option>
+			{/each}
+		</select>
+		<div>
+			<input type="tel" name={name + '-weight'} placeholder="kg" />
+		</div>
+	</div>
 	<div class="inputs">
 		{#each sets as s, index (index)}
-			<input type="tel" name={name + '-set-' + (index + 1)} bind:value={sets[index]} />
+			<input type="tel" name={name + '-set'} bind:value={sets[index]} autofocus />
 		{/each}
 		<button type="button" onclick={() => sets.push('')}>+</button>
 	</div>
@@ -28,8 +33,16 @@
 		flex-direction: column;
 		align-items: center;
 	}
+	.exercise {
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+		gap: 2rem;
+	}
+
 	select {
-		/* styling */
+		height: 4rem;
 		background-color: white;
 		border: thin solid blue;
 		border-radius: 4px;
@@ -48,7 +61,7 @@
 		background-size:
 			5px 5px,
 			5px 5px,
-			2.5em 2.5em;
+			2.5rem 4rem;
 		background-repeat: no-repeat;
 
 		/* reset */

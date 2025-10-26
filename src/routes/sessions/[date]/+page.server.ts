@@ -13,6 +13,7 @@ import type { Actions } from '@sveltejs/kit';
 import type { PageServerData } from './$types';
 import { translateLiftName } from '$lib/helpers';
 import { sql } from '$lib/server/db';
+import { addAssistanceWork, completeMainWorkout } from '$lib/server/transactions';
 
 type SessionDb = WorkoutSessionsDb &
 	TrainingCycleDb &
@@ -31,23 +32,76 @@ export const actions = {
 
 		const sessionId = Number(data.get('session_id'));
 		const setNumber = 3;
-		// const liftId = data.get('lift_id');
 
+		// Main work
 		const plannedWeight = Number(data.get('set_3_weight'));
 		const plannedReps = Number(data.get('set_3_reps'));
 		const actualReps = Number(data.get('set_3_actual_reps'));
-		const isAmrap = data.get('set_3_amrap') == 'true' ? 1 : 0;
-		const supplementalSetsDone = data.get('supplemental_sets_done') == 'true' ? 1 : 0;
+		const isAmrap = data.get('set_3_amrap') == 'true';
+		const hasDoneSupplemental = data.get('supplemental_sets_done') == 'true';
 
-		const addWorkStatement = sql.run`
-     INSERT INTO main_work (session_id, set_number, planned_weight, planned_reps, actual_weight, actual_reps, is_amrap, supplemental_done)
-     VALUES (${sessionId},${setNumber},${plannedWeight},${plannedReps},${plannedWeight},${isAmrap ? actualReps : plannedReps},${isAmrap},${supplementalSetsDone})
-`;
+		// Assistance work
+		const pullExerciseId = Number(data.get('pull'));
+		const pushExerciseId = Number(data.get('push'));
+		const coreExerciseId = Number(data.get('core'));
 
-		const updateSessionStatement = sql.run`UPDATE workout_sessions SET status = 'completed', completed_date = date('now') WHERE id = ${sessionId}`;
+		const pullSets = data
+			.getAll('pull-set')
+			?.filter((v) => Number(v) > 0)
+			.map(Number);
+		const pullWeight = Number(data.get('pull-weight'));
 
-		console.log('addResult', addWorkStatement);
-		console.info('updateSessionStatement', updateSessionStatement);
+		const pushSets = data
+			.getAll('push-set')
+			?.filter((v) => Number(v) > 0)
+			.map(Number);
+		const pushWeight = Number(data.get('push-weight'));
+
+		const coreSets = data
+			.getAll('core-set')
+			?.filter((v) => Number(v) > 0)
+			.map(Number);
+		const coreWeight = Number(data.get('core-weight'));
+
+		// Save!
+		completeMainWorkout({
+			sessionId,
+			setNumber,
+			plannedWeight,
+			plannedReps,
+			actualWeight: plannedWeight,
+			actualReps: isAmrap ? actualReps : plannedReps,
+			isAmrap,
+			hasDoneSupplemental
+		});
+
+		if (pullSets.length > 0) {
+			addAssistanceWork({
+				sessionId,
+				exerciseId: pullExerciseId,
+				sets: pullSets.length,
+				reps: pullSets.reduce((tot, curr) => (tot += curr)),
+				weight: pullWeight
+			});
+		}
+		if (pushSets?.length > 0) {
+			addAssistanceWork({
+				sessionId,
+				exerciseId: pushExerciseId,
+				sets: pushSets.length,
+				reps: pushSets.reduce((tot, curr) => (tot += curr)),
+				weight: pushWeight
+			});
+		}
+		if (coreSets?.length > 0) {
+			addAssistanceWork({
+				sessionId,
+				exerciseId: coreExerciseId,
+				sets: coreSets.length,
+				reps: coreSets.reduce((tot, curr) => (tot += curr)),
+				weight: coreWeight
+			});
+		}
 
 		return { success: true };
 	}
