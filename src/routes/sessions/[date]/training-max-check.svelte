@@ -3,12 +3,19 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { browserStorage, readDraft, writeDraft } from '$lib/draft';
+	import { formatShortDate } from '$lib/date';
 	import { formatKg, formatReps } from '$lib/format';
 	import type { TrainingMaxCheck } from '$lib/trainingMax';
 
-	type Props = { check: TrainingMaxCheck; sessionId: number; liftId: number; trainingMax: number };
+	type Props = {
+		check: TrainingMaxCheck;
+		sessionId: number;
+		liftId: number;
+		trainingMax: number;
+		openTest: { test_date: string; training_max: number } | undefined;
+	};
 
-	const { check, sessionId, liftId, trainingMax }: Props = $props();
+	const { check, sessionId, liftId, trainingMax, openTest }: Props = $props();
 
 	let saving = $state(false);
 	let failed = $state('');
@@ -31,6 +38,12 @@
 </script>
 
 {#snippet changeForm(from: number, to: number, label: string, secondary: boolean)}
+	{#if openTest && to < from}
+		<p class="note muted">
+			TM-testen fra {formatShortDate(openTest.test_date)} ({formatKg(openTest.training_max)}) blir
+			ikke lenger foreslått for neste blokk hvis du senker nå, heller ikke om du angrer.
+		</p>
+	{/if}
 	<form
 		method="POST"
 		action="?/changeTrainingMax"
@@ -98,8 +111,8 @@
 	<section class="card check">
 		<h3>Føltes 100 %-settet tungt?</h3>
 		<p>
-			Toppsettet i 7. uke skal gå greit. Klarte du ikke alle reps, eller var det en kamp, er
-			training max for høy og bør senkes 10 %.
+			Toppsettet i 7. uke skal gå greit. Var det en kamp, er training max for høy og bør senkes
+			10&nbsp;%.
 		</p>
 		{@render changeForm(
 			trainingMax,
@@ -140,5 +153,10 @@
 	.btn {
 		width: 100%;
 		min-height: var(--tap);
+	}
+
+	.note {
+		margin-top: 0.5rem;
+		font-size: 0.9rem;
 	}
 </style>

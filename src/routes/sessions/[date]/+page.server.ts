@@ -1,9 +1,14 @@
 import { normalizeWeight } from '$lib/core';
 import { isIsoDate, today } from '$lib/date';
 import { parseDecimal, parseWholeNumber } from '$lib/format';
-import { updateTrainingMaxes } from '$lib/planning/db.server';
+import { lastBlockCreatedAt, updateTrainingMaxes } from '$lib/planning/db.server';
 import { supplementalWeight } from '$lib/supplemental';
-import { trainingMaxCheck, type TrainingMaxCheck } from '$lib/trainingMax';
+import {
+	defaultTrainingMaxSource,
+	trainingMaxCheck,
+	type TrainingMaxCheck
+} from '$lib/trainingMax';
+import { latestTrainingMaxTests, type TrainingMaxTest } from '$lib/server/trainingMaxTests';
 import type {
 	AssistanceExerciseDb,
 	AssistanceWorkDb,
@@ -161,6 +166,9 @@ ORDER BY position` as PlannedAssistance[];
 
 	let history: SessionHistory | undefined;
 	let tmCheck: TrainingMaxCheck = { kind: 'none' };
+	// Lowering the training max makes an earlier TM test stop being the suggestion for the next
+	// block, so the card says so before it is tapped
+	let openTest: Pick<TrainingMaxTest, 'test_date' | 'training_max'> | undefined;
 
 	if (session.status == 'completed') {
 		history = {
@@ -190,6 +198,17 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 					isAmrap: Boolean(topSet.is_amrap)
 				}
 			});
+		if (tmCheck.kind === 'missedReps' || tmCheck.kind === 'askIfHeavy') {
+			const test = latestTrainingMaxTests().get(session.lift_id);
+			const suggested =
+				test &&
+				defaultTrainingMaxSource(
+					{ trainingMax: session.current_training_max, changedAt: session.updated_at },
+					{ createdAt: test.created_at },
+					lastBlockCreatedAt()
+				) === 'test';
+			if (suggested) openTest = { test_date: test.test_date, training_max: test.training_max };
+		}
 	}
 
 	// A completed session keeps the weights it was done with, even after the training max changes
@@ -276,6 +295,7 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 		plannedAssistance,
 		history,
 		tmCheck,
+		openTest,
 		trainingMax,
 		...neighbours
 	};

@@ -96,6 +96,7 @@
 					sessionId={session.session_id}
 					liftId={session.lift_id}
 					trainingMax={session.current_training_max}
+					openTest={data.openTest}
 				/>
 			{/key}
 			<SessionSummary
