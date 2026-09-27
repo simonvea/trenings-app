@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { formatShortDate, localDateOfUtcTimestamp } from '$lib/date';
+	import { formatShortDate, localDateOfUtcTimestamp, today } from '$lib/date';
 	import { formatChange, formatKg } from '$lib/format';
 	import { translateCycleType, translateDay, translateLiftName } from '$lib/helpers';
-	import { planBlock } from '$lib/planning/schedule';
+	import { mondayAfter, planBlock } from '$lib/planning/schedule';
 	import { defaultTrainingMaxSource, type TrainingMaxSource } from '$lib/trainingMax';
 	import {
 		cycleTypes,
@@ -20,11 +20,11 @@
 
 	const ASSISTANCE_SLOTS = [1, 2];
 
+	// The first free Monday: after today, and after a block that is still running
 	const nextMonday = (): string => {
-		const today = new Date();
-		const daysUntilMonday = (8 - today.getDay()) % 7 || 7;
-		// sv formats as YYYY-MM-DD in local time
-		return new Date(today.getTime() + daysUntilMonday * 86_400_000).toLocaleDateString('sv');
+		const todayDate = today();
+		const runningUntil = data.activeBlock?.endDate;
+		return mondayAfter(runningUntil && runningUntil > todayDate ? runningUntil : todayDate);
 	};
 
 	const liftIdByName = (name: string): number =>
@@ -272,8 +272,8 @@
 			{/each}
 		</div>
 		<p class="hint">
-			Valget blir lagret som training max når blokka opprettes{#if data.activeBlockName}, og gjelder
-				da også resten av «{data.activeBlockName}»{/if}. Ta en ny test fra mobilen under
+			Valget blir lagret som training max når blokka opprettes{#if data.activeBlock}, og gjelder da
+				også resten av «{data.activeBlock.name}»{/if}. Ta en ny test fra mobilen under
 			<a href={resolve('/tm-tests')}>TM-test</a>, eller endre training max direkte under
 			<a href={resolve('/admin')}>Planlegging</a>.
 		</p>
