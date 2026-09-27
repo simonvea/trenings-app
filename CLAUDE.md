@@ -12,6 +12,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run format` - Format code with Prettier
 - `npm run test:unit` - Run unit tests with Vitest
 - `npm run test` - Run all tests
+- `npx vitest run --project server` - Run only server-side (node) tests, e.g. `src/lib/planning/*.spec.ts`
+
+Requires Node 24 (`.nvmrc`); `node:sqlite` `createTagStore` is missing in Node 22.
+`DB_URL` in `.env` points at the SQLite file; it is created and migrated on startup.
 
 ## Architecture
 
@@ -20,7 +24,7 @@ This is a **5/3/1 strength training tracker** built with:
 - **SvelteKit** - Full-stack web framework with SSR
 - **SQLite** - Database using Node.js `DatabaseSync` API
 - **TypeScript** - Type safety throughout
-- **Adapter Node** - Deployed as Node.js application (migrated from Cloudflare)
+- **Adapter Node** - Deployed as a Node.js application via Docker (`docker-compose.yml`)
 
 ### Database Architecture
 
@@ -30,7 +34,7 @@ The app uses SQLite with a comprehensive schema for tracking 5/3/1 powerlifting 
 
 - `lifts` - The four main lifts (Squat, Bench, Deadlift, OHP) with training maxes
 - `training_blocks` - Training phases with scheduled workout days
-- `cycles` - 3-week training cycles (leader/anchor/7th week variations)
+- `cycles` - Training cycles: leader/anchor are 3 weeks, a 7th week is 1 week
 - `workout_sessions` - Individual workout sessions linked to cycles and lifts
 - `week_templates` - Percentage/rep schemes for different week types (5+, 3+, 5/3/1+, Deload)
 
@@ -50,6 +54,15 @@ The app uses SQLite with a comprehensive schema for tracking 5/3/1 powerlifting 
 - `src/lib/planning/` - Block planning: `schedule.ts` (pure session date planning), `blockForm.ts` (form parsing/validation), `db.server.ts` (planning queries)
 - `src/lib/types.ts` - TypeScript definitions for database entities
 - `src/routes/admin/` - Desktop admin: training maxes, blocks, new block from a program template
+
+### Planning workflow
+
+1. `/admin` - set training maxes (writes `training_max_history`), list and complete blocks
+2. `/admin/blocks/new` - pick a program template; its cycles and assistance prefill the form
+3. On submit: `parseBlockForm` validates, `planBlock` computes cycles and session dates,
+   `createBlock` inserts block, cycles, `block_assistance` and `workout_sessions` in one transaction
+4. `/sessions/[date]` - shows main work, supplemental (hidden when the template has 0 sets) and
+   the block's planned assistance for that lift
 
 ### Data Flow
 
@@ -91,4 +104,3 @@ You MUST use this tool whenever writing Svelte code before sending it to the use
 
 Generates a Svelte Playground link with the provided code.
 After completing the code, ask the user if they want a playground link. Only call this tool after user confirmation and NEVER if code was written to files in their project.
-
