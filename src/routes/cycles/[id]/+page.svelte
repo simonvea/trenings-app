@@ -4,6 +4,7 @@
 	import { formatShortDate, formatWeekdayShort } from '$lib/date';
 	import { formatKg } from '$lib/format';
 	import { translateCycleType, translateLiftName } from '$lib/helpers';
+	import { supplementalWeight } from '$lib/supplemental';
 	import type { PageProps } from './$types';
 	import type { Session } from './+page.server';
 
@@ -18,26 +19,28 @@
 		)
 	);
 
-	const setsOf = (session: Session): { reps: number; percentage: number }[] =>
+	type PlannedSet = { reps: number; percentage: number };
+	const setsOf = (session: Session): PlannedSet[] =>
 		[
 			{ reps: session.set_1_reps, percentage: session.set_1_percentage },
 			{ reps: session.set_2_reps, percentage: session.set_2_percentage },
 			{ reps: session.set_3_reps, percentage: session.set_3_percentage },
 			{ reps: session.set_4_reps, percentage: session.set_4_percentage }
-		].filter((set) => set.reps != null && set.percentage != null);
+		].filter((set): set is PlannedSet => set.reps != null && set.percentage != null);
 
 	const repsLabel = (reps: number): string => (reps < 0 ? `${Math.abs(reps)}+` : String(reps));
 
-	function supplementalWeight(session: Session): string {
-		const { weight_calculation, fixed_percentage } = cycle;
-		const { current_training_max, set_1_percentage } = session;
-
-		if (weight_calculation === 'first_set' && set_1_percentage)
-			return formatKg(normalizeWeight(set_1_percentage * current_training_max));
-		if (weight_calculation === 'fixed_percentage' && fixed_percentage)
-			return formatKg(normalizeWeight(fixed_percentage * current_training_max));
-		return '–';
-	}
+	const supplementalLabel = (session: Session): string => {
+		const weight = supplementalWeight(
+			{ weightCalculation: cycle.weight_calculation, fixedPercentage: cycle.fixed_percentage },
+			{
+				trainingMax: session.current_training_max,
+				set1Percentage: session.set_1_percentage,
+				set2Percentage: session.set_2_percentage
+			}
+		);
+		return weight === undefined ? '–' : formatKg(weight);
+	};
 </script>
 
 <header class="intro">
@@ -50,7 +53,7 @@
 
 {#each weeks as [weekNumber, sessions] (weekNumber)}
 	<section>
-		<h2>Uke {weekNumber}{sessions[0] ? ` · ${sessions[0].name}` : ''}</h2>
+		<h2 class="section-title">Uke {weekNumber}{sessions[0] ? ` · ${sessions[0].name}` : ''}</h2>
 		<div class="sessions">
 			{#each sessions as session (session.session_id)}
 				<a
@@ -77,7 +80,7 @@
 						{#if hasSupplemental}
 							<li class="supplemental">
 								<span>{cycle.template_name} {cycle.sets}×{cycle.reps}</span>
-								<span>{supplementalWeight(session)}</span>
+								<span>{supplementalLabel(session)}</span>
 							</li>
 						{/if}
 					</ul>
@@ -97,15 +100,6 @@
 
 	section {
 		margin-top: 1.5rem;
-	}
-
-	h2 {
-		margin: 0 0.25rem 0.5rem;
-		font-size: 0.8rem;
-		font-weight: 700;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--text-muted);
 	}
 
 	.sessions {

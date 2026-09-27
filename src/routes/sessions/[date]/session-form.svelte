@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { formatKg } from '$lib/format';
+	import { formatKg, formatSupplemental } from '$lib/format';
 	import type { AssistanceExerciseDb, MainLift } from '$lib/types';
 	import type { PlannedAssistance } from './+page.server';
 	import AssistanceSelect from './assistance-select.svelte';
@@ -71,7 +71,7 @@
 	<fieldset>
 		{#if warmupSets.length > 0}
 			<section class="card group">
-				<h2>Oppvarming</h2>
+				<h2 class="section-title">Oppvarming</h2>
 				{#each warmupSets as set, index (index)}
 					<label class="set warmup" class:done={set.done}>
 						<input class="visually-hidden" type="checkbox" bind:checked={set.done} />
@@ -85,7 +85,7 @@
 		{/if}
 
 		<section class="card group">
-			<h2>Arbeidssett</h2>
+			<h2 class="section-title">Arbeidssett</h2>
 			{#each workSets as set, index (index)}
 				{#if set.isAmrap}
 					<div class="set amrap" class:done={amrapReps !== ''}>
@@ -99,7 +99,7 @@
 								type="text"
 								inputmode="numeric"
 								pattern="[0-9]*"
-								name="set_3_actual_reps"
+								name="top_set_actual_reps"
 								placeholder={String(amrapTarget)}
 								bind:value={amrapReps}
 								required
@@ -117,19 +117,18 @@
 					</label>
 				{/if}
 			{/each}
-			<input type="hidden" name="set_3_weight" value={topSet.weight} />
-			<input type="hidden" name="set_3_reps" value={topSet.reps} />
-			<input type="hidden" name="set_3_amrap" value={topSet.isAmrap} />
+			<input type="hidden" name="top_set_number" value={workSets.length} />
+			<input type="hidden" name="top_set_weight" value={topSet.weight} />
+			<input type="hidden" name="top_set_reps" value={topSet.reps} />
+			<input type="hidden" name="top_set_amrap" value={topSet.isAmrap} />
 		</section>
 
 		{#if hasSupplemental}
 			<section class="card group">
-				<h2>
+				<h2 class="section-title">
 					{mainLift.supplemental.name}
 					<span class="muted num">
-						{mainLift.supplemental.sets} × {mainLift.supplemental.reps} @ {formatKg(
-							mainLift.supplemental.weight
-						)}
+						{formatSupplemental(mainLift.supplemental)}
 					</span>
 				</h2>
 				<div class="pills">
@@ -151,7 +150,7 @@
 
 		{#if plannedAssistance.length > 0}
 			<section class="card group">
-				<h2>Assistanse</h2>
+				<h2 class="section-title">Assistanse</h2>
 				{#each plannedAssistance as planned, index (index)}
 					{@const slot = `assistance-${index + 1}`}
 					<div class="assistance">
@@ -168,7 +167,7 @@
 
 		<section class="card group">
 			<label class="comment">
-				<h2>Kommentar</h2>
+				<h2 class="section-title">Kommentar</h2>
 				<textarea name="comment" rows="3" bind:value={comment} placeholder="Hvordan gikk det?"
 				></textarea>
 			</label>
@@ -206,11 +205,6 @@
 		align-items: baseline;
 		gap: 0.5rem;
 		margin: 0.25rem 0.25rem 0.75rem;
-		font-size: 0.8rem;
-		font-weight: 700;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--text-muted);
 	}
 
 	h2 .muted {

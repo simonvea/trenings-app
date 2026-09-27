@@ -25,7 +25,7 @@ export type Set = {
 export type SupplementalWork = {
 	sets: number;
 	reps: number;
-	weight: number;
+	weight: number | undefined;
 	name: string;
 };
 export type MainLift = {
@@ -108,8 +108,8 @@ export type WeekTemplateDb = {
 	set_2_reps: number;
 	set_3_percentage: number;
 	set_3_reps: number; // negative means AMRAP (as many reps as possible)
-	set_4_percentage: number; // Set only applicable for "7th week"
-	set_4_reps: number;
+	set_4_percentage?: number; // Set only applicable for "7th week"
+	set_4_reps?: number;
 };
 
 export type SupplementalTemplateDb = {

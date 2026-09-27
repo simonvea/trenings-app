@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { formatDayHeading } from '$lib/date';
-	import { formatKg } from '$lib/format';
+	import { formatKg, formatSupplemental } from '$lib/format';
 	import type { AssistanceExerciseDb, AssistanceWorkDb, MainLift, MainWorkDb } from '$lib/types';
 
 	type Props = {
@@ -21,7 +21,7 @@
 		Fullført{completedDate ? ` ${formatDayHeading(completedDate).toLowerCase()}` : ''}
 	</p>
 
-	<h2>Arbeidssett</h2>
+	<h2 class="section-title">Arbeidssett</h2>
 	<ul>
 		{#each mainWork as work (work.id)}
 			<li class="num">
@@ -34,13 +34,11 @@
 	</ul>
 
 	{#if mainLift.supplemental.sets > 0}
-		<h2>{mainLift.supplemental.name}</h2>
+		<h2 class="section-title">{mainLift.supplemental.name}</h2>
 		<ul>
 			<li class="num">
 				<span>
-					{mainLift.supplemental.sets} × {mainLift.supplemental.reps} @ {formatKg(
-						mainLift.supplemental.weight
-					)}
+					{formatSupplemental(mainLift.supplemental)}
 				</span>
 				<strong class:missed={!supplementalDone}>
 					{supplementalDone ? 'Fullført' : 'Ikke fullført'}
@@ -50,7 +48,7 @@
 	{/if}
 
 	{#if assistanceWork.length > 0}
-		<h2>Assistanse</h2>
+		<h2 class="section-title">Assistanse</h2>
 		<ul>
 			{#each assistanceWork as work (work.id)}
 				<li class="num">
@@ -64,12 +62,16 @@
 	{/if}
 
 	{#if notes}
-		<h2>Kommentar</h2>
+		<h2 class="section-title">Kommentar</h2>
 		<p class="notes">{notes}</p>
 	{/if}
 </section>
 
 <style>
+	h2 {
+		margin: 1.25rem 0 0.4rem;
+	}
+
 	.summary {
 		padding: 1rem;
 	}
@@ -81,15 +83,6 @@
 		background: var(--success-soft);
 		color: var(--success);
 		font-weight: 700;
-	}
-
-	h2 {
-		margin: 1.25rem 0 0.4rem;
-		font-size: 0.8rem;
-		font-weight: 700;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--text-muted);
 	}
 
 	ul {

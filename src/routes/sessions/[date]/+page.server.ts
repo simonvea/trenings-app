@@ -1,5 +1,6 @@
 import { normalizeWeight } from '$lib/core';
 import { parseDecimal } from '$lib/format';
+import { supplementalWeight } from '$lib/supplemental';
 import type {
 	AssistanceExerciseDb,
 	AssistanceWorkDb,
@@ -43,13 +44,14 @@ export const actions = {
 		const data = await request.formData();
 
 		const sessionId = Number(data.get('session_id'));
-		const setNumber = 3;
+		// The last main set is the one recorded: set 3, or set 4 in a 7th week
+		const setNumber = Number(data.get('top_set_number'));
 
 		// Main work
-		const plannedWeight = Number(data.get('set_3_weight'));
-		const plannedReps = Number(data.get('set_3_reps'));
-		const actualReps = Number(data.get('set_3_actual_reps'));
-		const isAmrap = data.get('set_3_amrap') == 'true';
+		const plannedWeight = Number(data.get('top_set_weight'));
+		const plannedReps = Number(data.get('top_set_reps'));
+		const actualReps = Number(data.get('top_set_actual_reps'));
+		const isAmrap = data.get('top_set_amrap') == 'true';
 		const hasDoneSupplemental = data.get('supplemental_sets_done') == 'true';
 		const notes = String(data.get('comment') ?? '').trim();
 
@@ -131,7 +133,14 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 		sets: session.sets ?? 0,
 		reps: session.reps ?? 0,
 		name: session.templateName,
-		weight: normalizeWeight(calculateSupplementalWeight(session))
+		weight: supplementalWeight(
+			{ weightCalculation: session.weight_calculation, fixedPercentage: session.fixed_percentage },
+			{
+				trainingMax: session.current_training_max,
+				set1Percentage: session.set_1_percentage,
+				set2Percentage: session.set_2_percentage
+			}
+		)
 	};
 
 	const mainLift: MainLift = {
@@ -152,7 +161,16 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 				reps: Math.abs(session.set_3_reps),
 				weight: normalizeWeight(session.current_training_max * session.set_3_percentage),
 				isAmrap: session.set_3_reps < 0
-			}
+			},
+			...(session.set_4_reps && session.set_4_percentage
+				? [
+						{
+							reps: Math.abs(session.set_4_reps),
+							weight: normalizeWeight(session.current_training_max * session.set_4_percentage),
+							isAmrap: session.set_4_reps < 0
+						}
+					]
+				: [])
 		],
 		supplemental
 	};
@@ -183,15 +201,3 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 
 	return { session, mainLift, title, exercises, plannedAssistance, history };
 };
-
-function calculateSupplementalWeight({
-	weight_calculation,
-	current_training_max,
-	set_1_percentage,
-	fixed_percentage
-}: SessionDb) {
-	if (weight_calculation == 'first_set') return current_training_max * set_1_percentage;
-	if (weight_calculation == 'fixed_percentage') return current_training_max * fixed_percentage!;
-	// the 'custom' option. Not defined how to use yet..
-	return current_training_max;
-}
