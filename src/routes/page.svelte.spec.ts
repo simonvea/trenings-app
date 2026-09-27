@@ -1,7 +1,7 @@
 import { page } from '@vitest/browser/context';
 import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import { today } from '$lib/date';
+import { formatDayHeading, today } from '$lib/date';
 import Page from './+page.svelte';
 
 const activeBlock = {
@@ -19,12 +19,13 @@ describe('/+page.svelte', () => {
 	describe('given an active block and a session planned today', () => {
 		it('when rendered, then it links to the block and offers to start today’s session', async () => {
 			// Arrange
+			const todayDate = today();
 			const data = {
 				blocks: [activeBlock],
 				upcoming: [
 					{
 						id: 5,
-						planned_date: today(),
+						planned_date: todayDate,
 						status: 'planned' as const,
 						liftName: 'Knebøy' as const,
 						weekName: '5+',
@@ -37,7 +38,9 @@ describe('/+page.svelte', () => {
 			render(Page, { data, params: {}, form: undefined });
 
 			// Assert
-			await expect.element(page.getByRole('heading', { level: 1 })).toBeInTheDocument();
+			await expect
+				.element(page.getByRole('heading', { name: formatDayHeading(todayDate) }))
+				.toBeInTheDocument();
 			await expect.element(page.getByText('Start økt')).toBeInTheDocument();
 			await expect
 				.element(page.getByRole('link', { name: /Triumvirate/ }))

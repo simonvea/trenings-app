@@ -14,6 +14,9 @@
 
 	const todaySession = $derived(data.upcoming.find((s) => s.planned_date === todayDate));
 	const later = $derived(data.upcoming.filter((s) => s.planned_date > todayDate).slice(0, 4));
+	const missed = $derived(
+		data.upcoming.filter((s) => s.planned_date < todayDate && s.status === 'planned')
+	);
 	const activeBlock = $derived(data.blocks.find((b) => !b.completed_date));
 	const finishedBlocks = $derived(data.blocks.filter((b) => b.completed_date));
 
@@ -25,7 +28,7 @@
 	{session.topSet.reps}{session.topSet.isAmrap ? '+' : ''} × {formatKg(session.topSet.weight)}
 {/snippet}
 
-<h1 class="date">{formatDayHeading(todayDate)}</h1>
+<h2 class="date">{formatDayHeading(todayDate)}</h2>
 
 <a class="card today" href={resolve('/sessions/[date]', { date: todayDate })}>
 	{#if todaySession}
@@ -48,11 +51,11 @@
 	{/if}
 </a>
 
-{#if later.length > 0}
+{#snippet sessionList(title: string, sessions: UpcomingSession[])}
 	<section>
-		<h2 class="section-title">Kommende økter</h2>
+		<h2 class="section-title">{title}</h2>
 		<ul class="card list">
-			{#each later as session (session.id)}
+			{#each sessions as session (session.id)}
 				<li>
 					<a href={resolve('/sessions/[date]', { date: session.planned_date })}>
 						<span class="when">
@@ -63,6 +66,9 @@
 							<strong>{session.liftName}</strong>
 							<span class="muted num">{@render topSet(session)}</span>
 						</span>
+						{#if session.status === 'completed'}
+							<span class="status done">Fullført</span>
+						{/if}
 						<svg viewBox="0 0 24 24" aria-hidden="true">
 							<path d="M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z" />
 						</svg>
@@ -71,6 +77,14 @@
 			{/each}
 		</ul>
 	</section>
+{/snippet}
+
+{#if missed.length > 0}
+	{@render sessionList('Ikke gjennomført', missed)}
+{/if}
+
+{#if later.length > 0}
+	{@render sessionList('Kommende økter', later)}
 {/if}
 
 <section>
@@ -150,8 +164,11 @@
 		font-size: 1.1rem;
 	}
 
-	.status.done {
+	.today .status.done {
 		margin-top: 0.5rem;
+	}
+
+	.status.done {
 		padding: 0.25rem 0.7rem;
 		border-radius: 999px;
 		background: var(--success-soft);

@@ -57,7 +57,7 @@
 
 <header class="header">
 	<div class="header-inner">
-		<span class="title">{title}</span>
+		<h1 class="title">{title}</h1>
 		{#if showNav}
 			<nav class="top-nav" aria-label="Hovedmeny">{@render navLinks(false)}</nav>
 		{/if}
@@ -73,9 +73,9 @@
 {/if}
 
 <style>
+	/* Only sticky on desktop: on a phone the tab bar already names the page, and the
+	   screen height is needed for the sets */
 	.header {
-		position: sticky;
-		top: 0;
 		z-index: 10;
 		background: var(--header-bg);
 		color: var(--on-header);
@@ -167,6 +167,11 @@
 	}
 
 	@media (min-width: 768px) {
+		.header {
+			position: sticky;
+			top: 0;
+		}
+
 		.top-nav {
 			display: flex;
 		}

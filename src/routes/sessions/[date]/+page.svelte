@@ -34,69 +34,79 @@
 	});
 </script>
 
-<nav class="day-nav" aria-label="Velg dag">
-	<a
-		class="step"
-		href={resolve('/sessions/[date]', { date: addDays(params.date, -1) })}
-		aria-label="Forrige dag"
-	>
-		<svg viewBox="0 0 24 24" aria-hidden="true"
-			><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z" /></svg
+<div class="session-page">
+	<nav class="day-nav" aria-label="Velg dag">
+		<a
+			class="step"
+			href={resolve('/sessions/[date]', {
+				date: data.previousDate ?? addDays(params.date, -1)
+			})}
+			aria-label="Forrige økt"
 		>
-	</a>
-	<div class="day">
-		<span class="date">{formatDayHeading(params.date)}</span>
-		{#if session}
-			<span class="muted">
-				{translateCycleType(session.cycle_type)}
-				{session.cycle_number_in_block} · uke {session.week_number_in_cycle} · {session.weekName}
-			</span>
-		{/if}
-	</div>
-	<a
-		class="step"
-		href={resolve('/sessions/[date]', { date: addDays(params.date, 1) })}
-		aria-label="Neste dag"
-	>
-		<svg viewBox="0 0 24 24" aria-hidden="true"
-			><path d="M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z" /></svg
+			<svg viewBox="0 0 24 24" aria-hidden="true"
+				><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z" /></svg
+			>
+		</a>
+		<div class="day">
+			<span class="date">{formatDayHeading(params.date)}</span>
+			{#if session}
+				<span class="muted">
+					{translateCycleType(session.cycle_type)}
+					{session.cycle_number_in_block} · uke {session.week_number_in_cycle} · {session.weekName}
+				</span>
+			{/if}
+		</div>
+		<a
+			class="step"
+			href={resolve('/sessions/[date]', { date: data.nextDate ?? addDays(params.date, 1) })}
+			aria-label="Neste økt"
 		>
-	</a>
-</nav>
+			<svg viewBox="0 0 24 24" aria-hidden="true"
+				><path d="M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z" /></svg
+			>
+		</a>
+	</nav>
 
-{#if !session || !mainLift || !data.exercises || !data.plannedAssistance}
-	<div class="card empty">
-		<p>Ingen økt denne dagen.</p>
-		<p class="muted">Hviledag – eller bla til neste treningsdag.</p>
-	</div>
-{:else}
-	<header class="lift">
-		<h1>{mainLift.name}</h1>
-		<span class="muted num">TM {formatKg(session.current_training_max)}</span>
-	</header>
-
-	{#if data.history}
-		<SessionSummary
-			{mainLift}
-			completedDate={session.session_completed_date ?? undefined}
-			notes={session.session_notes}
-			mainWork={data.history.mainWork}
-			assistanceWork={data.history.assistanceWork}
-		/>
+	{#if !session || !mainLift || !data.exercises || !data.plannedAssistance}
+		<div class="card empty">
+			<p>Ingen økt denne dagen.</p>
+			<p class="muted">Hviledag – eller bla til neste treningsdag.</p>
+		</div>
 	{:else}
-		{#key session.session_id}
-			<SessionForm
-				sessionId={session.session_id}
-				trainingMax={session.current_training_max}
+		<header class="lift">
+			<h2>{mainLift.name}</h2>
+			<span class="muted num">TM {formatKg(session.current_training_max)}</span>
+		</header>
+
+		{#if data.history}
+			<SessionSummary
 				{mainLift}
-				exercises={data.exercises}
-				plannedAssistance={data.plannedAssistance}
+				completedDate={session.session_completed_date ?? undefined}
+				notes={session.session_notes}
+				mainWork={data.history.mainWork}
+				assistanceWork={data.history.assistanceWork}
 			/>
-		{/key}
+		{:else}
+			{#key session.session_id}
+				<SessionForm
+					sessionId={session.session_id}
+					trainingMax={session.current_training_max}
+					{mainLift}
+					exercises={data.exercises}
+					plannedAssistance={data.plannedAssistance}
+				/>
+			{/key}
+		{/if}
 	{/if}
-{/if}
+</div>
 
 <style>
+	/* Keep reps and check marks within one glance on wide screens */
+	.session-page {
+		max-width: 640px;
+		margin: 0 auto;
+	}
+
 	.day-nav {
 		display: grid;
 		grid-template-columns: var(--tap) 1fr var(--tap);
@@ -146,7 +156,7 @@
 		margin: 0.5rem 0.25rem 1rem;
 	}
 
-	.lift h1 {
+	.lift h2 {
 		font-size: 2rem;
 		font-weight: 800;
 	}

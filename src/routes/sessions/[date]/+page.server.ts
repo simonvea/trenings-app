@@ -106,7 +106,14 @@ INNER JOIN week_templates as week on week.id = s.week_template_id
  where planned_date = ${date}
 ` as SessionDb;
 
-	if (!session) return { title: 'Økt' };
+	// The arrows jump between training days rather than calendar days
+	const { previous_date } = sql.get`SELECT MAX(planned_date) AS previous_date FROM workout_sessions
+WHERE planned_date < ${date}` as { previous_date: string | null };
+	const { next_date } = sql.get`SELECT MIN(planned_date) AS next_date FROM workout_sessions
+WHERE planned_date > ${date}` as { next_date: string | null };
+	const neighbours = { previousDate: previous_date, nextDate: next_date };
+
+	if (!session) return { title: 'Økt', ...neighbours };
 
 	const exercises =
 		sql.all`SELECT * FROM assistance_exercises ORDER BY category, name` as AssistanceExerciseDb[];
@@ -199,5 +206,5 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 
 	const title = 'Økt';
 
-	return { session, mainLift, title, exercises, plannedAssistance, history };
+	return { session, mainLift, title, exercises, plannedAssistance, history, ...neighbours };
 };
