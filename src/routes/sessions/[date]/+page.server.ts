@@ -1,5 +1,5 @@
 import { normalizeWeight } from '$lib/core';
-import { isIsoDate } from '$lib/date';
+import { isIsoDate, today } from '$lib/date';
 import { parseDecimal, parseWholeNumber } from '$lib/format';
 import { updateTrainingMaxes } from '$lib/planning/db.server';
 import { supplementalWeight } from '$lib/supplemental';
@@ -67,6 +67,9 @@ export const actions = {
 		const notes = String(data.get('comment') ?? '').trim();
 		// The one the weights on the phone were computed from, which may be older than the current
 		const trainingMax = parseDecimal(String(data.get('training_max') ?? ''));
+		// The phone's calendar day; the server clock may be UTC and date a late session a day early
+		const sentDate = String(data.get('completed_date') ?? '');
+		const completedDate = isIsoDate(sentDate) ? sentDate : today();
 
 		// Assistance work, one slot per planned exercise
 		const assistance = data.getAll('assistance_slot').map((slot) => ({
@@ -89,7 +92,8 @@ export const actions = {
 			isAmrap,
 			hasDoneSupplemental,
 			notes,
-			trainingMax
+			trainingMax,
+			completedDate
 		});
 
 		for (const { exerciseId, weight, reps } of assistance) {

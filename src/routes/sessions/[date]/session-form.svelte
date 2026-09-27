@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { today } from '$lib/date';
 	import { browserStorage, clearDrafts, readDraft, writeDraft } from '$lib/draft';
 	import { formatKg, formatReps, formatSupplemental } from '$lib/format';
 	import type { AssistanceExerciseDb, MainLift } from '$lib/types';
@@ -139,7 +140,8 @@
 	action="?/complete"
 	method="POST"
 	onkeydown={focusNextOnEnter}
-	use:enhance={() => {
+	use:enhance={({ formData }) => {
+		formData.set('completed_date', today());
 		submitting = true;
 		saveError = '';
 		return async ({ result, update }) => {
