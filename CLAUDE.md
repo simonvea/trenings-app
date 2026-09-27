@@ -64,6 +64,16 @@ The app uses SQLite with a comprehensive schema for tracking 5/3/1 powerlifting 
 4. `/sessions/[date]` - shows main work, supplemental (hidden when the template has 0 sets) and
    the block's planned assistance for that lift
 
+### Deployment
+
+- `.github/workflows/deploy.yml`: on push to `main`, runs lint/check/test, pushes
+  `registry.opheimutvikling.no/trenings-app:{sha,latest}`, then SSHes to the VPS and runs
+  `docker compose pull && up -d` in `/opt/infra/trenings-app` (compose file lives in the infra repo)
+- Secrets: `REGISTRY_USERNAME`, `REGISTRY_PASSWORD`, `VPS_SSH_KEY`, `VPS_HOST`, `VPS_USER`
+- Served at https://trening.opheimutvikling.no behind nginx basic auth
+- SQLite file on the VPS host: `/opt/infra/trenings-app/data/trening.db` (bind mount to `/app/data`)
+- `DB_URL` is read at runtime (`$env/dynamic/private`)
+
 ### Data Flow
 
 1. **Server Load Functions** (`+page.server.ts`) query SQLite using tagged template literals

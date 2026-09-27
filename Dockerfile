@@ -9,9 +9,6 @@ RUN npm ci
 
 COPY . .
 
-# Default DB_URL - can be overridden via environment variable or .env file
-ENV DB_URL=/app/data/trening.db
-
 RUN npm run build
 
 # Production stage
@@ -31,6 +28,7 @@ RUN mkdir -p /app/data
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
+ENV DB_URL=/app/data/trening.db
 
 EXPOSE 3000
 
@@ -39,6 +37,3 @@ HEALTHCHECK --interval=5m --timeout=3s --start-period=5s --retries=3 \
 
 # Start the app
 CMD ["node", "build"]
-
-# Volume for database persistence
-VOLUME ["/app/data"]

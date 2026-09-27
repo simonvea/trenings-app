@@ -60,3 +60,4 @@ vite.config.ts.timestamp-*
 
 # SQL files (data initialization)
 *.sql
+!src/lib/server/migrations/*.sql
