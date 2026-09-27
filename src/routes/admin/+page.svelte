@@ -1,11 +1,14 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { formatShortDate } from '$lib/date';
+	import { formatShortDate, localDateOfUtcTimestamp } from '$lib/date';
+	import { formatKg } from '$lib/format';
 	import { translateLiftName } from '$lib/helpers';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
+
+	const testByLift = $derived(new Map(data.latestTests.map((t) => [t.lift_id, t])));
 
 	const formatDate = (date: string | null | undefined): string =>
 		date ? formatShortDate(date.slice(0, 10)) : '–';
@@ -24,28 +27,36 @@
 		>
 			<div class="lifts">
 				{#each data.lifts as lift (lift.id)}
-					<label class="lift">
-						<span class="lift-name">{translateLiftName(lift.name)}</span>
+					{@const test = testByLift.get(lift.id)}
+					<div class="lift">
+						<label class="lift-name" for={'tm_' + lift.id}>{translateLiftName(lift.name)}</label>
 						<input type="hidden" name="lift_id" value={lift.id} />
 						<span class="with-unit">
 							<input
 								class="num"
-								type="number"
 								inputmode="decimal"
+								autocomplete="off"
+								id={'tm_' + lift.id}
 								name={'tm_' + lift.id}
-								value={lift.current_training_max}
-								min="0"
-								step="0.5"
+								value={lift.current_training_max.toLocaleString('nb', { useGrouping: false })}
 								required
 							/>
 							<span class="muted">kg</span>
 						</span>
-						<span class="muted updated">Endret {formatDate(lift.updated_at)}</span>
-					</label>
+						<span class="muted updated">
+							Endret {formatShortDate(localDateOfUtcTimestamp(lift.updated_at))}
+						</span>
+						{#if test}
+							<span class="muted updated">
+								Test {formatShortDate(test.test_date)}: {formatKg(test.training_max)}
+							</span>
+						{/if}
+					</div>
 				{/each}
 			</div>
 			<div class="actions">
 				<button class="btn" type="submit">Lagre training max</button>
+				<a href={resolve('/tm-tests')}>TM-test</a>
 				{#if form?.tmError}
 					<p class="error" role="alert">{form.tmError}</p>
 				{:else if form?.tmSaved}
