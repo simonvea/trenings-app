@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { formatShortDate, localDateOfUtcTimestamp } from '$lib/date';
@@ -12,6 +13,19 @@
 
 	const formatDate = (date: string | null | undefined): string =>
 		date ? formatShortDate(date.slice(0, 10)) : '–';
+
+	// Completing hides the block's sessions and cannot be undone here, so it takes a second
+	// click. The button turns into the confirm under the pointer, so a double click is ignored.
+	let confirmingBlockId = $state<number>();
+	let armedAt = 0;
+	let confirmTimer: ReturnType<typeof setTimeout> | undefined;
+	function askToComplete(id: number, event: MouseEvent): void {
+		confirmingBlockId = id;
+		armedAt = event.detail > 0 ? Date.now() : 0;
+		clearTimeout(confirmTimer);
+		confirmTimer = setTimeout(() => (confirmingBlockId = undefined), 4000);
+	}
+	onDestroy(() => clearTimeout(confirmTimer));
 </script>
 
 <div class="admin">
@@ -100,10 +114,29 @@
 									{#if block.completed_date}
 										<span class="badge">Fullført {formatDate(block.completed_date)}</span>
 									{:else}
-										<form method="POST" action="?/completeBlock" use:enhance>
+										<form
+											method="POST"
+											action="?/completeBlock"
+											use:enhance={({ cancel }) => {
+												if (Date.now() - armedAt < 400) {
+													cancel();
+													return;
+												}
+												confirmingBlockId = undefined;
+											}}
+										>
 											<input type="hidden" name="block_id" value={block.id} />
-											<button type="submit" class="btn btn-secondary small">
-												Marker som fullført
+											<!-- One button that changes role, so keyboard focus survives arming and disarming -->
+											<button
+												type={confirmingBlockId === block.id ? 'submit' : 'button'}
+												class="btn small"
+												class:btn-secondary={confirmingBlockId !== block.id}
+												class:confirm={confirmingBlockId === block.id}
+												onclick={(event) => {
+													if (confirmingBlockId !== block.id) askToComplete(block.id, event);
+												}}
+											>
+												{confirmingBlockId === block.id ? 'Fullfør blokka?' : 'Marker som fullført'}
 											</button>
 										</form>
 									{/if}
@@ -200,6 +233,14 @@
 		padding: 0.3rem 0.8rem;
 		font-size: 0.875rem;
 		white-space: nowrap;
+	}
+
+	.confirm {
+		background: var(--danger);
+	}
+
+	.confirm:hover {
+		background: var(--danger);
 	}
 
 	.badge {
