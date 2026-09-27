@@ -8,7 +8,8 @@ export function completeMainWorkout({
 	actualWeight,
 	actualReps,
 	isAmrap,
-	hasDoneSupplemental
+	hasDoneSupplemental,
+	notes
 }: {
 	sessionId: number;
 	setNumber: number;
@@ -18,6 +19,7 @@ export function completeMainWorkout({
 	actualReps: number;
 	isAmrap: boolean;
 	hasDoneSupplemental: boolean;
+	notes: string;
 }) {
 	const amrap = isAmrap ? 1 : 0;
 	const supplementalDone = hasDoneSupplemental ? 1 : 0;
@@ -26,7 +28,7 @@ export function completeMainWorkout({
      VALUES (${sessionId},${setNumber},${plannedWeight},${plannedReps},${actualWeight},${actualReps},${amrap},${supplementalDone})
 `;
 
-	sql.run`UPDATE workout_sessions SET status = 'completed', completed_date = date('now') WHERE id = ${sessionId}`;
+	sql.run`UPDATE workout_sessions SET status = 'completed', completed_date = date('now'), notes = ${notes || null} WHERE id = ${sessionId}`;
 }
 
 export function addAssistanceWork({

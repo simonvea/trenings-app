@@ -1,360 +1,151 @@
 <script lang="ts">
-	import { SvelteDate } from 'svelte/reactivity';
+	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
+	import { addDays, formatDayHeading } from '$lib/date';
+	import { formatKg } from '$lib/format';
+	import { translateCycleType } from '$lib/helpers';
 	import type { PageProps } from './$types';
-	import AssistanceSelect from './assistance-select.svelte';
-
-	try {
-		navigator.wakeLock?.request('screen');
-	} catch (e) {
-		console.error('unable to lock screen', (e as Error)?.message);
-	}
+	import SessionForm from './session-form.svelte';
+	import SessionSummary from './session-summary.svelte';
 
 	let { data, params }: PageProps = $props();
 
-	const { session, mainLift, exercises, plannedAssistance } = data;
-	const hasSupplemental = (mainLift?.supplemental.sets ?? 0) > 0;
-	let { date } = params;
+	const session = $derived(data.session);
+	const mainLift = $derived(data.mainLift);
 
-	const getDateString = (date: Date) => date.toJSON().slice(0, 10);
-
-	if (date == 'now') date = getDateString(new Date());
-
-	const completed = session?.status == 'completed';
-	const sets = $state(mainLift?.sets.map((s) => ({ ...s, checked: completed })));
-	const warmupSets = $state(mainLift?.warmupSets.map((s) => ({ ...s, checked: completed })));
-	let supplementalSetsDone = $state(0);
-	let isDone = $derived(
-		supplementalSetsDone == mainLift?.supplemental.sets && sets?.every((s) => s.checked)
-	);
-	let comment = $state(mainLift?.comment || '');
-	let loading = $state(false);
-
-	const today = new Date(date);
-	const tomorrow = new Date(new SvelteDate().setDate(today.getDate() + 1));
-	const yesterday = new Date(new SvelteDate().setDate(today.getDate() - 1));
-	const days = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
-	const todayName = days[today.getDay()];
-
-	const getSuggestedAmrapReps = (weight: number, estimated_max: number) => {
-		const constant = 0.0278;
-		const a = weight / (estimated_max * constant);
-		const b = (1 + constant) / constant;
-		return Math.round(-a + b);
-	};
-
-	const mainSet = mainLift?.sets[mainLift.sets.length - 1];
-	let suggestedAmrapReps = $state(mainSet?.reps || 0);
-	if (session && mainSet?.isAmrap) {
-		suggestedAmrapReps = getSuggestedAmrapReps(mainSet.weight, session.current_training_max);
-	}
+	onMount(() => {
+		let lock: WakeLockSentinel | undefined;
+		navigator.wakeLock
+			?.request('screen')
+			.then((l) => (lock = l))
+			.catch((e: Error) => console.error('unable to lock screen', e.message));
+		return () => lock?.release();
+	});
 </script>
 
-<section data-sveltekit-reload class="nav">
-	<a href={resolve('/sessions/[date]', { date: getDateString(yesterday) })}>forrige</a>
-	<p>{todayName}: {today.toLocaleDateString('no')}</p>
-	<a href={resolve('/sessions/[date]', { date: getDateString(tomorrow) })}>neste</a>
-</section>
+<nav class="day-nav" aria-label="Velg dag">
+	<a
+		class="step"
+		href={resolve('/sessions/[date]', { date: addDays(params.date, -1) })}
+		aria-label="Forrige dag"
+	>
+		<svg viewBox="0 0 24 24" aria-hidden="true"
+			><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z" /></svg
+		>
+	</a>
+	<div class="day">
+		<span class="date">{formatDayHeading(params.date)}</span>
+		{#if session}
+			<span class="muted">
+				{translateCycleType(session.cycle_type)}
+				{session.cycle_number_in_block} · uke {session.week_number_in_cycle} · {session.weekName}
+			</span>
+		{/if}
+	</div>
+	<a
+		class="step"
+		href={resolve('/sessions/[date]', { date: addDays(params.date, 1) })}
+		aria-label="Neste dag"
+	>
+		<svg viewBox="0 0 24 24" aria-hidden="true"
+			><path d="M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z" /></svg
+		>
+	</a>
+</nav>
 
-{#if !session || !mainLift || !exercises}
-	<p>Ingen økt i dag, {todayName}!</p>
+{#if !session || !mainLift || !data.exercises || !data.plannedAssistance}
+	<div class="card empty">
+		<p>Ingen økt denne dagen.</p>
+		<p class="muted">Hviledag – eller bla til neste treningsdag.</p>
+	</div>
 {:else}
-	{#if completed}
-		<section class="completed">
-			<p>Denne økta er gjort!</p>
-		</section>
-	{/if}
+	<header class="lift">
+		<h1>{mainLift.name}</h1>
+		<span class="muted num">TM {formatKg(session.current_training_max)}</span>
+	</header>
 
-	<form class="form" method="POST" onsubmit={() => (loading = true)}>
-		<input type="hidden" name="session_id" value={session.session_id} />
-		<input type="hidden" name="lift_id" value={session.lift_id} />
-		<section>
-			<h2>{mainLift.name}</h2>
-			<table>
-				<thead>
-					<tr>
-						<th>Reps</th>
-						<th>Kg</th>
-						<th>Done</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each warmupSets as set, index (set)}
-						<tr
-							onclick={() => (set.checked = !set.checked)}
-							class={[set.checked && 'warmup__set--done', 'warmup__set']}
-						>
-							<td>{set.reps}{set.isAmrap ? '+' : ''}</td>
-							<td>{set.weight} kg</td>
-							<td>
-								<input type="checkbox" name={'warmup_set_' + index} bind:checked={set.checked} />
-							</td>
-						</tr>
-					{/each}
-					{#each sets as set, index (set)}
-						<tr
-							onclick={() => !set.isAmrap && (set.checked = !set.checked)}
-							class={set.checked ? 'set--done' : ''}
-						>
-							<td
-								>{set.reps}{set.isAmrap ? '+' : ''}
-								<input type="hidden" name={'set_' + (index + 1) + '_reps'} value={set.reps} />
-							</td>
-							<td>
-								<input type="hidden" name={'set_' + (index + 1) + '_weight'} value={set.weight} />
-								{set.weight} kg</td
-							>
-							<td>
-								<input type="hidden" name={'set_' + (index + 1) + '_amrap'} value={set.isAmrap} />
-								{#if set.isAmrap}
-									<input
-										class="set__amrap-reps"
-										type="tel"
-										name={'set_' + (index + 1) + '_actual_reps'}
-										placeholder={suggestedAmrapReps.toString()}
-										onchange={(e) => (set.checked = !!e.currentTarget.value)}
-									/>
-								{:else}
-									<input
-										type="checkbox"
-										name={'set_' + (index + 1) + '_done'}
-										bind:checked={set.checked}
-									/>
-								{/if}
-							</td>
-						</tr>
-					{/each}
-					{#if hasSupplemental}
-						<tr>
-							<td colspan="3"><h3>{mainLift.supplemental.name}</h3></td>
-						</tr>
-						<tr>
-							<th>Reps</th>
-							<th>Kg</th>
-							<th>Gjennomført</th>
-						</tr>
-						<tr class={['supplemental', { 'set--done': isDone }]}>
-							<td>{mainLift.supplemental.sets}x{mainLift.supplemental.reps}</td>
-							<td>{mainLift.supplemental.weight} kg</td>
-							<td class="supplemental__done">
-								<button
-									type="button"
-									onclick={() => supplementalSetsDone > 0 && supplementalSetsDone--}>-</button
-								>
-								<span>{supplementalSetsDone}</span>
-								<button
-									type="button"
-									onclick={() =>
-										supplementalSetsDone < mainLift.supplemental.reps && supplementalSetsDone++}
-									>+</button
-								>
-							</td>
-						</tr>
-					{/if}
-				</tbody>
-			</table>
-		</section>
-		{#if plannedAssistance && plannedAssistance.length > 0}
-			<section>
-				<h2>Assistanse</h2>
-				{#each plannedAssistance as planned, index (index)}
-					{@const slot = `assistance-${index + 1}`}
-					<section>
-						<h3>{exercises.find((e) => e.id === planned.exercise_id)?.name}</h3>
-						<input type="hidden" name="assistance_slot" value={slot} />
-						<AssistanceSelect
-							name={slot}
-							{exercises}
-							planned={{ exerciseId: planned.exercise_id, sets: planned.sets, reps: planned.reps }}
-						/>
-					</section>
-				{/each}
-			</section>
-		{/if}
-		{#if isDone}
-			<section>
-				<p>Ferdig! Flink!</p>
-				{#if loading}
-					<span>Sender data!</span>
-				{/if}
-				<button type="submit" disabled={loading || completed}>Ferdig</button>
-			</section>
-		{/if}
-		<section class="comment">
-			<details>
-				<summary>
-					<h3>Kommentar</h3>
-				</summary>
-				<textarea cols="30" rows="5" name="comment" bind:value={comment}></textarea>
-			</details>
-		</section>
-		<section>
-			<input type="hidden" name="supplemental_sets_done" value={isDone} />
-			{#if loading}
-				<span>Sender data!</span>
-			{/if}
-			<button type="submit" disabled={loading || completed}>Ferdig</button>
-		</section>
-	</form>
+	{#if data.history}
+		<SessionSummary
+			{mainLift}
+			completedDate={session.session_completed_date ?? undefined}
+			notes={session.session_notes}
+			mainWork={data.history.mainWork}
+			assistanceWork={data.history.assistanceWork}
+		/>
+	{:else}
+		{#key session.session_id}
+			<SessionForm
+				sessionId={session.session_id}
+				trainingMax={session.current_training_max}
+				{mainLift}
+				exercises={data.exercises}
+				plannedAssistance={data.plannedAssistance}
+			/>
+		{/key}
+	{/if}
 {/if}
 
 <style>
-	.nav {
-		display: flex;
-		flex-direction: row;
-		justify-content: space-around;
+	.day-nav {
+		display: grid;
+		grid-template-columns: var(--tap) 1fr var(--tap);
+		align-items: center;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
 	}
 
-	h2,
-	h3 {
-		margin-top: 2rem 0;
-	}
-	form {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-	}
-
-	table {
-		width: 360px;
-		border-collapse: collapse;
+	.step {
+		display: grid;
+		place-items: center;
+		width: var(--tap);
+		height: var(--tap);
+		border-radius: 50%;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		color: var(--text);
 	}
 
-	section {
+	.step svg {
+		width: 26px;
+		height: 26px;
+		fill: currentColor;
+	}
+
+	.day {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		margin: 0;
-	}
-
-	.set__amrap-reps {
-		height: 2rem;
-		width: 3rem;
-	}
-
-	.set--done {
-		background-color: green;
-	}
-
-	th,
-	td {
 		text-align: center;
-		padding: 1rem;
-		border-bottom: 1px solid;
 	}
 
-	.warmup__set {
-		background-color: lightblue;
+	.date {
+		font-weight: 700;
+		font-size: 1.05rem;
 	}
 
-	.warmup__set--done {
-		background-color: lightgreen;
+	.day .muted {
+		font-size: 0.875rem;
 	}
 
-	input[type='checkbox'] {
-		width: 1.6rem;
-		height: 1.6rem;
-		min-width: 1.6rem;
-		min-height: 1.6rem;
-		cursor: pointer;
-		position: relative;
-	}
-
-	input[type='checkbox']::before {
-		content: '';
-		position: absolute;
-		top: -12px;
-		left: -12px;
-		right: -12px;
-		bottom: -12px;
-	}
-
-	button {
-		background-color: #04aa6d;
-		border-radius: 4px;
-		border: none;
-		color: white;
-		padding: 15px 32px;
-		text-align: center;
-		text-decoration: none;
-		display: inline-block;
-		font-size: 16px;
-		margin: 4px 2px;
-		cursor: pointer;
-	}
-
-	.comment {
-		height: 360px;
-	}
-	details {
-		width: 100%;
-		margin: 1rem 0;
-		border: 1px solid #ddd;
-		border-radius: 8px;
-		overflow: hidden;
-		background: #fff;
-	}
-
-	summary {
-		padding: 1rem;
-		font-weight: 600;
-		font-size: 1rem;
-		cursor: pointer;
-		user-select: none;
-		background: #f5f5f5;
-		list-style: none; /* Removes default marker */
+	.lift {
 		display: flex;
-		align-items: center;
+		align-items: baseline;
 		justify-content: space-between;
-		transition: background-color 0.2s ease;
+		gap: 1rem;
+		margin: 0.5rem 0.25rem 1rem;
 	}
 
-	summary:hover {
-		background: #ebebeb;
+	.lift h1 {
+		font-size: 2rem;
+		font-weight: 800;
 	}
 
-	summary::after {
-		content: '▼';
-		font-size: 0.75rem;
-		transition: transform 0.3s ease;
-		color: #666;
+	.empty {
+		padding: 1.5rem 1rem;
+		text-align: center;
 	}
 
-	details[open] summary::after {
-		transform: rotate(-180deg);
-	}
-
-	textarea {
-		resize: none;
-		/* Sizing */
-		width: 100%;
-		min-height: 120px;
-		max-width: 100%;
-
-		/* Padding & spacing */
-		padding: 12px 16px;
-		box-sizing: border-box;
-
-		/* Typography */
-		font-size: 16px; /* Prevents iOS zoom on focus */
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-		line-height: 1.5;
-
-		/* Borders & appearance */
-		border: 1px solid #ccc;
-		border-radius: 8px;
-
-		/* Behavior */
-		resize: vertical; /* Allows vertical resizing only */
-
-		/* Touch optimization */
-		touch-action: manipulation;
-	}
-
-	/* Focus state */
-	textarea:focus {
-		outline: none;
-		border-color: #007aff; /* iOS blue */
-		box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+	.empty p {
+		margin: 0.25rem 0;
 	}
 </style>

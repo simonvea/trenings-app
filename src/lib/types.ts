@@ -146,6 +146,7 @@ export type MainWorkDb = {
 	actual_weight?: number;
 	actual_reps?: number;
 	is_amrap?: boolean;
+	supplemental_done: boolean;
 	rpe?: number;
 	notes?: string;
 };
