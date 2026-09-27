@@ -48,7 +48,7 @@
 		// The exercise may have been changed again while this request was in flight
 		if (id !== exerciseId) return;
 		lastTime = latest;
-		if (latest?.weight && weight === '') weight = String(latest.weight);
+		if (latest?.weight && weight === '') weight = latest.weight.toLocaleString('nb');
 		loading = false;
 	}
 
@@ -109,6 +109,7 @@
 					class="num"
 					type="text"
 					inputmode="decimal"
+					enterkeyhint="next"
 					pattern="[0-9]+([,.][0-9]+)?"
 					name={name + '-weight'}
 					placeholder="0"
@@ -132,6 +133,7 @@
 						type="text"
 						inputmode="numeric"
 						pattern="[0-9]*"
+						enterkeyhint="next"
 						name={name + '-set'}
 						placeholder={String(planned.reps)}
 						bind:value={sets[index]}
@@ -241,7 +243,7 @@
 		width: 100%;
 		height: 56px;
 		margin-top: calc(0.75rem * 1.45 + 0.15rem);
-		border: 2px dashed var(--border);
+		border: 2px dashed var(--border-strong);
 		border-radius: var(--radius-sm);
 		background: transparent;
 		color: var(--text-muted);

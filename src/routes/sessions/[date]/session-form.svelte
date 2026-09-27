@@ -29,6 +29,10 @@
 	let amrapReps = $state('');
 	let comment = $state('');
 	let submitting = $state(false);
+	let saveError = $state('');
+	// An incomplete session needs a second tap, so a stray thumb cannot finish it early
+	let confirmingEarlyFinish = $state(false);
+	let confirmTimer: ReturnType<typeof setTimeout> | undefined;
 
 	type Draft = {
 		warmup: boolean[];
@@ -66,6 +70,7 @@
 			comment = draft.comment;
 		}
 		restored = true;
+		return () => clearTimeout(confirmTimer);
 	});
 
 	$effect(() => {
@@ -100,6 +105,26 @@
 			supplementalDone.filter(Boolean).length
 	);
 	const hasSupplemental = start.mainLift.supplemental.sets > 0;
+
+	function confirmEarlyFinish(event: MouseEvent): void {
+		if (allSetsDone || confirmingEarlyFinish) return;
+		event.preventDefault();
+		confirmingEarlyFinish = true;
+		clearTimeout(confirmTimer);
+		confirmTimer = setTimeout(() => (confirmingEarlyFinish = false), 4000);
+	}
+
+	// Enter on a phone keyboard would submit the whole session; move to the next field instead
+	function focusNextOnEnter(event: KeyboardEvent & { currentTarget: HTMLFormElement }): void {
+		if (event.key !== 'Enter' || !(event.target instanceof HTMLInputElement)) return;
+		event.preventDefault();
+		const fields = [
+			...event.currentTarget.querySelectorAll<HTMLElement>(
+				'input:not([type=hidden]):not(.visually-hidden), textarea'
+			)
+		];
+		fields[fields.indexOf(event.target) + 1]?.focus();
+	}
 </script>
 
 {#snippet checkMark()}
@@ -108,11 +133,22 @@
 	</svg>
 {/snippet}
 
+<!-- Delegated from the fields inside; the form itself is not a control -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <form
 	method="POST"
+	onkeydown={focusNextOnEnter}
 	use:enhance={() => {
 		submitting = true;
+		saveError = '';
 		return async ({ result, update }) => {
+			// Bad signal in the gym must not replace the form with an error page
+			if (result.type === 'error') {
+				saveError = 'Ikke lagret – sjekk nettet og prøv igjen.';
+				submitting = false;
+				confirmingEarlyFinish = false;
+				return;
+			}
 			await update({ reset: false });
 			if (result.type === 'success') {
 				clearDrafts(browserStorage(), draftKey);
@@ -144,24 +180,23 @@
 			<h2 class="section-title">Arbeidssett</h2>
 			{#each workSets as set, index (index)}
 				{#if set.isAmrap}
-					<div class="set amrap" class:done={amrapReps !== ''}>
+					<label class="set amrap" class:done={amrapReps !== ''}>
 						<span class="reps num">{set.reps}+</span>
 						<span class="times">×</span>
 						<span class="weight num">{formatKg(set.weight)}</span>
-						<label class="amrap-input">
-							<span class="visually-hidden">Antall reps på siste sett</span>
-							<input
-								class="num"
-								type="text"
-								inputmode="numeric"
-								pattern="[0-9]*"
-								name="top_set_actual_reps"
-								placeholder={String(amrapTarget)}
-								bind:value={amrapReps}
-								required
-							/>
-						</label>
-					</div>
+						<span class="visually-hidden">Antall reps på siste sett</span>
+						<input
+							class="num"
+							type="text"
+							inputmode="numeric"
+							pattern="[0-9]*"
+							enterkeyhint="next"
+							name="top_set_actual_reps"
+							placeholder="–"
+							bind:value={amrapReps}
+							required
+						/>
+					</label>
 					<p class="hint">Mål: {amrapTarget}+ reps. Skriv inn hvor mange du fikk.</p>
 				{:else}
 					<label class="set" class:done={set.done}>
@@ -202,7 +237,11 @@
 				</div>
 			</section>
 		{/if}
-		<input type="hidden" name="supplemental_sets_done" value={supplementalDone.every(Boolean)} />
+		<input
+			type="hidden"
+			name="supplemental_sets_done"
+			value={hasSupplemental && supplementalDone.every(Boolean)}
+		/>
 
 		{#if plannedAssistance.length > 0}
 			<section class="card group">
@@ -225,18 +264,39 @@
 		<section class="card group">
 			<label class="comment">
 				<h2 class="section-title">Kommentar</h2>
-				<textarea name="comment" rows="3" bind:value={comment} placeholder="Hvordan gikk det?"
+				<textarea
+					name="comment"
+					rows="3"
+					enterkeyhint="done"
+					bind:value={comment}
+					placeholder="Hvordan gikk det?"
 				></textarea>
 			</label>
 		</section>
 	</fieldset>
 
 	<div class="submit-bar">
-		<span class="progress num" class:all-done={allSetsDone}>
-			{doneCount} av {totalCount} sett
-		</span>
-		<button class="btn" type="submit" disabled={submitting}>
-			{submitting ? 'Lagrer …' : 'Fullfør økt'}
+		{#if saveError}
+			<p class="error save-error" role="alert">{saveError}</p>
+		{:else}
+			<span class="progress num" class:all-done={allSetsDone}>
+				{mainLift.name}: {doneCount} av {totalCount} sett
+			</span>
+		{/if}
+		<button
+			class="btn"
+			class:confirm={confirmingEarlyFinish}
+			type="submit"
+			disabled={submitting}
+			onclick={confirmEarlyFinish}
+		>
+			{#if submitting}
+				Lagrer …
+			{:else if confirmingEarlyFinish}
+				Fullfør likevel?
+			{:else}
+				Fullfør økt
+			{/if}
 		</button>
 	</div>
 </form>
@@ -311,7 +371,7 @@
 		width: 30px;
 		height: 30px;
 		padding: 3px;
-		border: 2px solid var(--border);
+		border: 2px solid var(--border-strong);
 		border-radius: 50%;
 		fill: transparent;
 	}
@@ -327,11 +387,10 @@
 	}
 
 	.amrap {
-		cursor: default;
 		background: var(--accent-soft);
 	}
 
-	.amrap-input input {
+	.amrap input {
 		width: 4.5rem;
 		height: 48px;
 		text-align: center;
@@ -357,7 +416,7 @@
 		place-items: center;
 		width: 52px;
 		height: 52px;
-		border: 2px solid var(--border);
+		border: 2px solid var(--border-strong);
 		border-radius: 50%;
 		font-size: 1.15rem;
 		font-weight: 700;
@@ -394,13 +453,13 @@
 
 	.submit-bar {
 		position: sticky;
-		bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 0.75rem);
+		bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 0.4rem);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 1rem;
 		margin-top: 1rem;
-		padding: 0.6rem 0.6rem 0.6rem 1rem;
+		padding: 0.4rem 0.4rem 0.4rem 1rem;
 		background: var(--surface);
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
@@ -414,6 +473,16 @@
 
 	.progress.all-done {
 		color: var(--success);
+	}
+
+	.save-error {
+		margin: 0;
+		font-weight: 600;
+	}
+
+	.btn.confirm {
+		background: var(--danger);
+		color: var(--on-accent);
 	}
 
 	.submit-bar .btn {

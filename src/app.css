@@ -5,6 +5,8 @@
 	--surface: #ffffff;
 	--surface-2: #eef0f3;
 	--border: #dde1e7;
+	/* Outlines of controls that must read as tappable (WCAG 1.4.11: 3:1) */
+	--border-strong: #858d9a;
 	--text: #14171c;
 	--text-muted: #5d6572;
 	--accent: #2563eb;
@@ -35,6 +37,7 @@
 		--surface: #171b22;
 		--surface-2: #212631;
 		--border: #2c3340;
+		--border-strong: #6b7485;
 		--text: #eef1f5;
 		--text-muted: #9aa3b2;
 		--accent: #4f8cff;
@@ -58,6 +61,8 @@
 }
 
 html {
+	/* Keep focused fields clear of the tab bar and the session's submit bar */
+	scroll-padding-bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 6rem);
 	-webkit-text-size-adjust: 100%;
 	-webkit-tap-highlight-color: transparent;
 }
@@ -97,7 +102,7 @@ select,
 textarea {
 	font-size: max(1rem, 16px);
 	background: var(--surface);
-	border: 1px solid var(--border);
+	border: 1px solid var(--border-strong);
 	border-radius: var(--radius-sm);
 	padding: 0.55rem 0.7rem;
 }

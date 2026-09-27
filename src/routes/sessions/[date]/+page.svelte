@@ -15,11 +15,22 @@
 
 	onMount(() => {
 		let lock: WakeLockSentinel | undefined;
-		navigator.wakeLock
-			?.request('screen')
-			.then((l) => (lock = l))
-			.catch((e: Error) => console.error('unable to lock screen', e.message));
-		return () => lock?.release();
+		const keepScreenOn = (): void => {
+			navigator.wakeLock
+				?.request('screen')
+				.then((l) => (lock = l))
+				.catch((e: Error) => console.error('unable to lock screen', e.message));
+		};
+		// The browser drops the lock whenever the app is backgrounded, e.g. to change music
+		const onVisible = (): void => {
+			if (document.visibilityState === 'visible') keepScreenOn();
+		};
+		keepScreenOn();
+		document.addEventListener('visibilitychange', onVisible);
+		return () => {
+			document.removeEventListener('visibilitychange', onVisible);
+			lock?.release();
+		};
 	});
 </script>
 

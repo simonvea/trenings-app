@@ -13,7 +13,7 @@ describe('parseDecimal', () => {
 		expect(kg).toBe(22.5);
 	});
 
-	it('when the value is empty, then it parses as zero', () => {
+	it('when the value is empty, then there is no weight', () => {
 		// Arrange
 		const empty = '';
 
@@ -21,6 +21,17 @@ describe('parseDecimal', () => {
 		const kg = parseDecimal(empty);
 
 		// Assert
-		expect(kg).toBe(0);
+		expect(kg).toBeNull();
+	});
+
+	it('when the value is not a number, then there is no weight', () => {
+		// Arrange
+		const garbage = '2x';
+
+		// Act
+		const kg = parseDecimal(garbage);
+
+		// Assert
+		expect(kg).toBeNull();
 	});
 });

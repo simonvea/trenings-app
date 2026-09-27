@@ -42,7 +42,7 @@ export function addAssistanceWork({
 	exerciseId: number;
 	sets: number;
 	reps: number;
-	weight: number;
+	weight: number | null;
 	notes?: string;
 }) {
 	sql.run`INSERT INTO assistance_work (session_id, exercise_id, sets, reps, weight)
