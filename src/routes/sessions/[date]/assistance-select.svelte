@@ -1,16 +1,31 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
+	import { browserStorage, readDraft, writeDraft } from '$lib/draft';
 	import { formatKg } from '$lib/format';
 	import type { AssistanceExerciseDb } from '$lib/types';
 
 	type Props = {
 		name: string;
+		draftKey: string;
 		exercises: AssistanceExerciseDb[];
 		planned: { exerciseId: number; sets: number; reps: number };
 	};
 	type LastTime = { sets: number; reps: number; weight: number };
+	type Draft = { exerciseId: number; weight: string; sets: string[] };
 
-	const { name, exercises, planned }: Props = $props();
+	const isDraft = (value: unknown): value is Draft => {
+		const draft = value as Draft;
+		return (
+			typeof draft === 'object' &&
+			draft !== null &&
+			exercises.some((e) => e.id === draft.exerciseId) &&
+			typeof draft.weight === 'string' &&
+			Array.isArray(draft.sets) &&
+			draft.sets.every((set) => typeof set === 'string')
+		);
+	};
+
+	const { name, draftKey, exercises, planned }: Props = $props();
 
 	// Start from the plan; exercise and number of sets can still be changed during the session.
 	const plannedSets = (): string[] => Array.from({ length: planned.sets }, () => '');
@@ -27,8 +42,9 @@
 	async function loadLastTime(id: number): Promise<void> {
 		loading = true;
 		lastTime = undefined;
-		const res = await fetch('/history/exercises/' + id);
-		const [latest] = res.ok ? ((await res.json()) as LastTime[]) : [];
+		// History is a hint; without a connection the set can still be logged
+		const res = await fetch('/history/exercises/' + id).catch(() => undefined);
+		const [latest] = res?.ok ? ((await res.json()) as LastTime[]) : [];
 		// The exercise may have been changed again while this request was in flight
 		if (id !== exerciseId) return;
 		lastTime = latest;
@@ -43,10 +59,22 @@
 	async function addSet(): Promise<void> {
 		sets.push('');
 		await tick();
-		setList?.querySelector<HTMLInputElement>('li:last-child input')?.focus();
+		setList?.querySelector<HTMLInputElement>('li:nth-last-child(2) input')?.focus();
 	}
 
-	onMount(() => loadLastTime(exerciseId));
+	// Restored after mount, not during init, so server and client render the same markup
+	let restored = $state(false);
+	onMount(() => {
+		const draft = readDraft<Draft | undefined>(browserStorage(), draftKey, undefined, isDraft);
+		if (draft) ({ exerciseId, weight, sets } = draft);
+		restored = true;
+		loadLastTime(exerciseId);
+	});
+
+	$effect(() => {
+		if (!restored) return;
+		writeDraft(browserStorage(), draftKey, { exerciseId, weight, sets: [...sets] } satisfies Draft);
+	});
 </script>
 
 <div class="assistance">

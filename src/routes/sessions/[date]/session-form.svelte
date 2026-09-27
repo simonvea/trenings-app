@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { browserStorage, clearDrafts, readDraft, writeDraft } from '$lib/draft';
 	import { formatKg, formatSupplemental } from '$lib/format';
 	import type { AssistanceExerciseDb, MainLift } from '$lib/types';
 	import type { PlannedAssistance } from './+page.server';
@@ -27,6 +29,55 @@
 	let amrapReps = $state('');
 	let comment = $state('');
 	let submitting = $state(false);
+
+	type Draft = {
+		warmup: boolean[];
+		work: boolean[];
+		supplemental: boolean[];
+		amrapReps: string;
+		comment: string;
+	};
+	const draftKey = `session-${sessionId}`;
+	const isBooleans = (value: unknown, length: number): boolean =>
+		Array.isArray(value) && value.length === length && value.every((v) => typeof v === 'boolean');
+	// A draft saved before the plan changed (e.g. another week template) is dropped
+	const fitsPlan = (value: unknown): value is Draft => {
+		const draft = value as Draft;
+		return (
+			typeof draft === 'object' &&
+			draft !== null &&
+			isBooleans(draft.warmup, warmupSets.length) &&
+			isBooleans(draft.work, workSets.length) &&
+			isBooleans(draft.supplemental, supplementalDone.length) &&
+			typeof draft.amrapReps === 'string' &&
+			typeof draft.comment === 'string'
+		);
+	};
+
+	// Restored after mount, not during init, so server and client render the same markup
+	let restored = $state(false);
+	onMount(() => {
+		const draft = readDraft<Draft | undefined>(browserStorage(), draftKey, undefined, fitsPlan);
+		if (draft) {
+			draft.warmup.forEach((done, i) => (warmupSets[i].done = done));
+			draft.work.forEach((done, i) => (workSets[i].done = done));
+			draft.supplemental.forEach((done, i) => (supplementalDone[i] = done));
+			amrapReps = draft.amrapReps;
+			comment = draft.comment;
+		}
+		restored = true;
+	});
+
+	$effect(() => {
+		if (!restored) return;
+		writeDraft(browserStorage(), draftKey, {
+			warmup: warmupSets.map((s) => s.done),
+			work: workSets.map((s) => s.done),
+			supplemental: [...supplementalDone],
+			amrapReps,
+			comment
+		} satisfies Draft);
+	});
 
 	const topSet = start.mainLift.sets[start.mainLift.sets.length - 1];
 
@@ -61,8 +112,13 @@
 	method="POST"
 	use:enhance={() => {
 		submitting = true;
-		return async ({ update }) => {
+		return async ({ result, update }) => {
 			await update({ reset: false });
+			if (result.type === 'success') {
+				clearDrafts(browserStorage(), draftKey);
+				// The summary replaces the form; start reading it from the top
+				window.scrollTo({ top: 0 });
+			}
 			submitting = false;
 		};
 	}}
@@ -157,6 +213,7 @@
 						<input type="hidden" name="assistance_slot" value={slot} />
 						<AssistanceSelect
 							name={slot}
+							draftKey={`${draftKey}-${slot}`}
 							{exercises}
 							planned={{ exerciseId: planned.exercise_id, sets: planned.sets, reps: planned.reps }}
 						/>
