@@ -1,7 +1,7 @@
 # trenings-app
 
 Personal 5/3/1 strength training tracker. Plan training blocks from program templates on
-desktop, log workouts on the phone during the session.
+desktop, log workouts on the phone during the session, and check how the day is meant to run.
 
 Built with SvelteKit, SQLite (`node:sqlite`) and `@sveltejs/adapter-node`.
 
@@ -44,6 +44,18 @@ Triumvirate program template.
 Program templates are seeded via migrations; there is no template editor yet. To add a
 template, add a new migration that inserts into `program_templates`,
 `program_template_cycles` and `program_template_assistance`.
+
+## Day plan
+
+**Dag** (`/day`) shows how today is meant to run, from waking up to the evening walk: a card
+with what should happen now, how long is left and what comes next, then the whole day as a
+list. The weekday buttons show each day's next date, so **Man** on a Sunday evening is
+tomorrow. A training entry named after the lift of a planned session (e.g. "Knebøy") links to
+it.
+
+The plan is one weekly template, the same every week, edited per weekday with **Rediger**. It
+is seeded with a Monday–Friday plan built around a dog that can't be left alone for more than
+six hours; weekends start empty.
 
 ## Database migrations
 
