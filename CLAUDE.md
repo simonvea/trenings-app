@@ -70,9 +70,16 @@ The app uses SQLite with a comprehensive schema for tracking 5/3/1 powerlifting 
   `registry.opheimutvikling.no/trenings-app:{sha,latest}`, then SSHes to the VPS and runs
   `docker compose pull && up -d` in `/opt/infra/trenings-app` (compose file lives in the infra repo)
 - Secrets: `REGISTRY_USERNAME`, `REGISTRY_PASSWORD`, `VPS_SSH_KEY`, `VPS_HOST`, `VPS_USER`
-- Served at https://trening.opheimutvikling.no behind nginx basic auth
+- Served at https://trening.opheimutvikling.no; nginx rate-limits `/login`
 - SQLite file on the VPS host: `/opt/infra/trenings-app/data/trening.db` (bind mount to `/app/data`)
 - `DB_URL` is read at runtime (`$env/dynamic/private`)
+
+### Auth
+
+- Single user. `src/hooks.server.ts` redirects to `/login` unless the `session` cookie verifies
+- `src/lib/auth/session.ts`: stateless token `<expiresAtMs>.<hmac>`, 1 year TTL, no DB
+- Env `AUTH_PASSWORD` and `AUTH_SECRET` (required at startup). Rotate `AUTH_SECRET` to log out all devices
+- Public paths: `/login`, `/health` (docker healthcheck)
 
 ### Data Flow
 

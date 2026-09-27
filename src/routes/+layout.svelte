@@ -39,6 +39,9 @@
 			<a href={resolve('/')} onclick={closeMenu}>Hjem</a>
 			<a href={resolve('/sessions/[date]', { date: today })} onclick={closeMenu}>Dagens økt</a>
 			<a href={resolve('/admin')} onclick={closeMenu}>Admin</a>
+			<form method="POST" action={resolve('/logout')}>
+				<button type="submit">Logg ut</button>
+			</form>
 		</nav>
 	</aside>
 
@@ -161,6 +164,19 @@
 		border-left: 3px solid transparent;
 	}
 
+	.nav button {
+		width: 100%;
+		padding: 1rem 1.5rem;
+		background: none;
+		border: none;
+		border-left: 3px solid transparent;
+		color: #333;
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.nav button:hover,
 	.nav a:hover {
 		background: #f0f0f0;
 	}
