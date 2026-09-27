@@ -81,7 +81,9 @@
 
 	const preview = $derived.by(() => {
 		try {
-			return { cycles: planBlock({ startDate, days, cycles, weekTemplateIds: data.weekTemplateIds }) };
+			return {
+				cycles: planBlock({ startDate, days, cycles, weekTemplateIds: data.weekTemplateIds })
+			};
 		} catch (e) {
 			return { error: (e as Error).message };
 		}

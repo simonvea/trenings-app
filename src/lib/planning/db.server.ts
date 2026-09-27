@@ -130,7 +130,10 @@ export function createBlock(block: NewBlock, cycles: PlannedCycle[]): number {
 	});
 }
 
-export type BlockSummary = Pick<TrainingBlockDb, 'id' | 'name' | 'start_date' | 'completed_date'> & {
+export type BlockSummary = Pick<
+	TrainingBlockDb,
+	'id' | 'name' | 'start_date' | 'completed_date'
+> & {
 	end_date: string | null;
 	template_name: string | null;
 	sessions_total: number;
@@ -155,7 +158,9 @@ export function completeBlock(blockId: number): void {
 	sql.run`UPDATE training_blocks SET completed_date = date('now') WHERE id = ${blockId}`;
 }
 
-export function updateTrainingMaxes(trainingMaxes: { liftId: number; trainingMax: number }[]): void {
+export function updateTrainingMaxes(
+	trainingMaxes: { liftId: number; trainingMax: number }[]
+): void {
 	assert(
 		trainingMaxes.every((tm) => tm.trainingMax > 0),
 		`Training max must be positive: ${JSON.stringify(trainingMaxes)}`

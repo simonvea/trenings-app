@@ -13,7 +13,13 @@
 <div class="admin">
 	<section>
 		<h2>Training max</h2>
-		<form method="POST" action="?/updateTm" use:enhance={() => ({ update }) => update({ reset: false })}>
+		<form
+			method="POST"
+			action="?/updateTm"
+			use:enhance={() =>
+				({ update }) =>
+					update({ reset: false })}
+		>
 			<table>
 				<thead>
 					<tr>

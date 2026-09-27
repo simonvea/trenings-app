@@ -81,8 +81,7 @@ export const parseBlockForm = (data: FormData): BlockFormResult => {
 		errors.days = 'Hvert løft kan bare trenes én dag i uka';
 
 	if (cycles.length === 0) errors.cycles = 'Blokka må ha minst én syklus';
-	else if (cycles.some((c) => !cycleTypes.includes(c.type)))
-		errors.cycles = 'Ukjent syklustype';
+	else if (cycles.some((c) => !cycleTypes.includes(c.type))) errors.cycles = 'Ukjent syklustype';
 	else if (cycles.some((c) => c.type === '7th week' && !c.seventhWeekTemplateId))
 		errors.cycles = 'En 7. uke må ha en ukemal (f.eks. Deload)';
 

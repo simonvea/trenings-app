@@ -2,8 +2,20 @@
 	import type { AssistanceExerciseDb } from '$lib/types';
 	import { onMount } from 'svelte';
 
-	let sets = $state([] as string[]);
-	const { name, exercises }: { name: string; exercises: AssistanceExerciseDb[] } = $props();
+	const {
+		name,
+		exercises,
+		planned
+	}: {
+		name: string;
+		exercises: AssistanceExerciseDb[];
+		planned: { exerciseId: number; sets: number; reps: number };
+	} = $props();
+	// Start from the plan; exercise and number of sets can still be changed during the session.
+	const plannedSets = (): string[] => Array.from({ length: planned.sets }, () => '');
+	const plannedExercise = (): number => planned.exerciseId;
+	let sets = $state(plannedSets());
+	let exerciseId = $state(plannedExercise());
 	let history = $state({ reps: 0, weight: 0 } as { reps: number; weight: number });
 	let loading = $state(true);
 
@@ -25,10 +37,11 @@
 		loading = false;
 	}
 
-	onMount(() => updateHistory(exercises[0].id));
+	onMount(() => updateHistory(exerciseId));
 </script>
 
 <div class="container">
+	<p>Plan: {planned.sets}x{planned.reps}</p>
 	<p>Reps totalt: {totalReps}</p>
 	{#if loading}
 		<p>Henter historie...</p>
@@ -38,7 +51,7 @@
 		<p>Sist: {history.reps} reps x {history.weight} kg</p>
 	{/if}
 	<div class="exercise">
-		<select {name} onchange={(e) => updateHistory(Number(e.currentTarget.value))}>
+		<select {name} bind:value={exerciseId} onchange={() => updateHistory(exerciseId)}>
 			{#each exercises as exercise (exercise.id)}
 				<option value={exercise.id}>{exercise.name}</option>
 			{/each}
@@ -49,7 +62,12 @@
 	</div>
 	<div class="inputs">
 		{#each sets as s, index (index)}
-			<input type="tel" name={name + '-set'} bind:value={sets[index]} autofocus />
+			<input
+				type="tel"
+				name={name + '-set'}
+				bind:value={sets[index]}
+				autofocus={index >= planned.sets}
+			/>
 		{/each}
 		<button type="button" onclick={() => sets.push('')}>+</button>
 	</div>

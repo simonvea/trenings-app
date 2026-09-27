@@ -28,6 +28,8 @@ type SessionDb = WorkoutSessionsDb &
 		session_id: number;
 	};
 
+export type PlannedAssistance = { exercise_id: number; sets: number; reps: number };
+
 type SessionHistory = {
 	mainWork: MainWorkDb[];
 	assistanceWork: (AssistanceWorkDb & Pick<AssistanceExerciseDb, 'name' | 'category'>)[];
@@ -47,28 +49,15 @@ export const actions = {
 		const isAmrap = data.get('set_3_amrap') == 'true';
 		const hasDoneSupplemental = data.get('supplemental_sets_done') == 'true';
 
-		// Assistance work
-		const pullExerciseId = Number(data.get('pull'));
-		const pushExerciseId = Number(data.get('push'));
-		const coreExerciseId = Number(data.get('core'));
-
-		const pullSets = data
-			.getAll('pull-set')
-			?.filter((v) => Number(v) > 0)
-			.map(Number);
-		const pullWeight = Number(data.get('pull-weight'));
-
-		const pushSets = data
-			.getAll('push-set')
-			?.filter((v) => Number(v) > 0)
-			.map(Number);
-		const pushWeight = Number(data.get('push-weight'));
-
-		const coreSets = data
-			.getAll('core-set')
-			?.filter((v) => Number(v) > 0)
-			.map(Number);
-		const coreWeight = Number(data.get('core-weight'));
+		// Assistance work, one slot per planned exercise
+		const assistance = data.getAll('assistance_slot').map((slot) => ({
+			exerciseId: Number(data.get(`${slot}`)),
+			weight: Number(data.get(`${slot}-weight`)),
+			reps: data
+				.getAll(`${slot}-set`)
+				.map(Number)
+				.filter((reps) => reps > 0)
+		}));
 
 		// Save!
 		completeMainWorkout({
@@ -82,31 +71,14 @@ export const actions = {
 			hasDoneSupplemental
 		});
 
-		if (pullSets.length > 0) {
+		for (const { exerciseId, weight, reps } of assistance) {
+			if (!exerciseId || reps.length === 0) continue;
 			addAssistanceWork({
 				sessionId,
-				exerciseId: pullExerciseId,
-				sets: pullSets.length,
-				reps: pullSets.reduce((tot, curr) => (tot += curr)),
-				weight: pullWeight
-			});
-		}
-		if (pushSets?.length > 0) {
-			addAssistanceWork({
-				sessionId,
-				exerciseId: pushExerciseId,
-				sets: pushSets.length,
-				reps: pushSets.reduce((tot, curr) => (tot += curr)),
-				weight: pushWeight
-			});
-		}
-		if (coreSets?.length > 0) {
-			addAssistanceWork({
-				sessionId,
-				exerciseId: coreExerciseId,
-				sets: coreSets.length,
-				reps: coreSets.reduce((tot, curr) => (tot += curr)),
-				weight: coreWeight
+				exerciseId,
+				sets: reps.length,
+				reps: reps.reduce((tot, curr) => tot + curr, 0),
+				weight
 			});
 		}
 
@@ -129,7 +101,11 @@ INNER JOIN week_templates as week on week.id = s.week_template_id
 
 	if (!session) return {};
 
-	const exercises = sql.all`SELECT * FROM assistance_exercises` as AssistanceExerciseDb[];
+	const exercises =
+		sql.all`SELECT * FROM assistance_exercises ORDER BY category, name` as AssistanceExerciseDb[];
+	const plannedAssistance = sql.all`SELECT exercise_id, sets, reps FROM block_assistance
+WHERE block_id = ${session.block_id} AND lift_id = ${session.lift_id}
+ORDER BY position` as PlannedAssistance[];
 
 	let history: SessionHistory | undefined;
 
@@ -146,10 +122,9 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 		};
 	}
 
-	// TODO: handle non-supplemental weeks
 	const supplemental: SupplementalWork = {
-		sets: session.sets,
-		reps: session.reps,
+		sets: session.sets ?? 0,
+		reps: session.reps ?? 0,
 		name: session.templateName,
 		weight: normalizeWeight(calculateSupplementalWeight(session))
 	};
@@ -201,7 +176,7 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 
 	const title = `Uke ${session.week_number_in_cycle}`;
 
-	return { session, mainLift, title, exercises, history };
+	return { session, mainLift, title, exercises, plannedAssistance, history };
 };
 
 function calculateSupplementalWeight({

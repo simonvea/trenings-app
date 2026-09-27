@@ -11,7 +11,8 @@
 
 	let { data, params }: PageProps = $props();
 
-	const { session, mainLift, exercises } = data;
+	const { session, mainLift, exercises, plannedAssistance } = data;
+	const hasSupplemental = (mainLift?.supplemental.sets ?? 0) > 0;
 	let { date } = params;
 
 	const getDateString = (date: Date) => date.toJSON().slice(0, 10);
@@ -122,53 +123,53 @@
 							</td>
 						</tr>
 					{/each}
-					<tr>
-						<td colspan="3"><h3>{mainLift.supplemental.name}</h3></td>
-					</tr>
-					<tr>
-						<th>Reps</th>
-						<th>Kg</th>
-						<th>Gjennomført</th>
-					</tr>
-					<tr class={['supplemental', { 'set--done': isDone }]}>
-						<td>{mainLift.supplemental.sets}x{mainLift.supplemental.reps}</td>
-						<td>{mainLift.supplemental.weight} kg</td>
-						<td class="supplemental__done">
-							<button
-								type="button"
-								onclick={() => supplementalSetsDone > 0 && supplementalSetsDone--}>-</button
-							>
-							<span>{supplementalSetsDone}</span>
-							<button
-								type="button"
-								onclick={() =>
-									supplementalSetsDone < mainLift.supplemental.reps && supplementalSetsDone++}
-								>+</button
-							>
-						</td>
-					</tr>
+					{#if hasSupplemental}
+						<tr>
+							<td colspan="3"><h3>{mainLift.supplemental.name}</h3></td>
+						</tr>
+						<tr>
+							<th>Reps</th>
+							<th>Kg</th>
+							<th>Gjennomført</th>
+						</tr>
+						<tr class={['supplemental', { 'set--done': isDone }]}>
+							<td>{mainLift.supplemental.sets}x{mainLift.supplemental.reps}</td>
+							<td>{mainLift.supplemental.weight} kg</td>
+							<td class="supplemental__done">
+								<button
+									type="button"
+									onclick={() => supplementalSetsDone > 0 && supplementalSetsDone--}>-</button
+								>
+								<span>{supplementalSetsDone}</span>
+								<button
+									type="button"
+									onclick={() =>
+										supplementalSetsDone < mainLift.supplemental.reps && supplementalSetsDone++}
+									>+</button
+								>
+							</td>
+						</tr>
+					{/if}
 				</tbody>
 			</table>
 		</section>
-		<section>
-			<h2>Assistanse</h2>
+		{#if plannedAssistance && plannedAssistance.length > 0}
 			<section>
-				<h3>Pull</h3>
-				<AssistanceSelect name="pull" exercises={exercises.filter((e) => e.category == 'pull')} />
+				<h2>Assistanse</h2>
+				{#each plannedAssistance as planned, index (index)}
+					{@const slot = `assistance-${index + 1}`}
+					<section>
+						<h3>{exercises.find((e) => e.id === planned.exercise_id)?.name}</h3>
+						<input type="hidden" name="assistance_slot" value={slot} />
+						<AssistanceSelect
+							name={slot}
+							{exercises}
+							planned={{ exerciseId: planned.exercise_id, sets: planned.sets, reps: planned.reps }}
+						/>
+					</section>
+				{/each}
 			</section>
-			<section>
-				<h3>Push</h3>
-				<AssistanceSelect name="push" exercises={exercises.filter((e) => e.category == 'push')} />
-			</section>
-
-			<section>
-				<h3>Kjerne/Ben</h3>
-				<AssistanceSelect
-					name="core"
-					exercises={exercises.filter((e) => e.category == 'legs/core')}
-				/>
-			</section>
-		</section>
+		{/if}
 		{#if isDone}
 			<section>
 				<p>Ferdig! Flink!</p>
