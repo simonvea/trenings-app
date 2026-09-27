@@ -79,8 +79,9 @@ export const trainingMaxCheck = ({
 	sessionTrainingMax?: number;
 	topSet: TopSetResult;
 }): TrainingMaxCheck => {
-	const missedReps = topSet.isAmrap && topSet.actualReps < topSet.plannedReps;
 	const atFullTrainingMax = !topSet.isAmrap && topSet.percentage >= 1;
+	const missedReps =
+		(topSet.isAmrap || atFullTrainingMax) && topSet.actualReps < topSet.plannedReps;
 	if (!missedReps && !atFullTrainingMax) return { kind: 'none' };
 
 	const changed =

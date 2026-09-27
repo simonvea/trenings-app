@@ -21,6 +21,8 @@ export type Set = {
 	reps: number;
 	weight: number;
 	isAmrap: boolean;
+	// Reps are typed in rather than ticked: AMRAP sets, and the 7th week set at 100 %
+	recordsReps?: boolean;
 };
 export type SupplementalWork = {
 	sets: number;
@@ -144,7 +146,7 @@ export type MainWorkDb = {
 	planned_weight: number;
 	planned_reps: number;
 	actual_weight?: number;
-	actual_reps?: number;
+	actual_reps?: number | null;
 	is_amrap?: boolean;
 	supplemental_done: boolean;
 	training_max?: number | null;

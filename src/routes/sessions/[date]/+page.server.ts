@@ -1,6 +1,6 @@
 import { normalizeWeight } from '$lib/core';
 import { isIsoDate } from '$lib/date';
-import { parseDecimal } from '$lib/format';
+import { parseDecimal, parseWholeNumber } from '$lib/format';
 import { updateTrainingMaxes } from '$lib/planning/db.server';
 import { supplementalWeight } from '$lib/supplemental';
 import { lowerTrainingMax, trainingMaxCheck, type TrainingMaxCheck } from '$lib/trainingMax';
@@ -53,8 +53,10 @@ export const actions = {
 		// Main work
 		const plannedWeight = Number(data.get('top_set_weight'));
 		const plannedReps = Number(data.get('top_set_reps'));
-		const actualReps = Number(data.get('top_set_actual_reps'));
+		// Empty when the set was skipped, which is not the same as 0 reps
+		const actualReps = parseWholeNumber(String(data.get('top_set_actual_reps') ?? ''));
 		const isAmrap = data.get('top_set_amrap') == 'true';
+		const recordsReps = data.get('top_set_records_reps') == 'true';
 		const hasDoneSupplemental = data.get('supplemental_sets_done') == 'true';
 		const notes = String(data.get('comment') ?? '').trim();
 		// The one the weights on the phone were computed from, which may be older than the current
@@ -77,7 +79,7 @@ export const actions = {
 			plannedWeight,
 			plannedReps,
 			actualWeight: plannedWeight,
-			actualReps: isAmrap ? actualReps : plannedReps,
+			actualReps: recordsReps || isAmrap ? actualReps : plannedReps,
 			isAmrap,
 			hasDoneSupplemental,
 			notes,
@@ -211,14 +213,17 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 			{
 				reps: Math.abs(session.set_3_reps),
 				weight: normalizeWeight(trainingMax * session.set_3_percentage),
-				isAmrap: session.set_3_reps < 0
+				isAmrap: session.set_3_reps < 0,
+				recordsReps: session.set_3_reps < 0
 			},
 			...(session.set_4_reps && session.set_4_percentage
 				? [
 						{
 							reps: Math.abs(session.set_4_reps),
 							weight: normalizeWeight(trainingMax * session.set_4_percentage),
-							isAmrap: session.set_4_reps < 0
+							isAmrap: session.set_4_reps < 0,
+							// A missed rep at the full training max means it is too heavy
+							recordsReps: session.set_4_reps < 0 || session.set_4_percentage >= 1
 						}
 					]
 				: [])

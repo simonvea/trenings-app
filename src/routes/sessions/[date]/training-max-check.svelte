@@ -1,15 +1,31 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
-	import { formatKg } from '$lib/format';
+	import { browserStorage, readDraft, writeDraft } from '$lib/draft';
+	import { formatKg, formatReps } from '$lib/format';
 	import type { TrainingMaxCheck } from '$lib/trainingMax';
 
-	type Props = { check: TrainingMaxCheck; liftId: number; trainingMax: number };
+	type Props = { check: TrainingMaxCheck; sessionId: number; liftId: number; trainingMax: number };
 
-	const { check, liftId, trainingMax }: Props = $props();
+	const { check, sessionId, liftId, trainingMax }: Props = $props();
 
 	let saving = $state(false);
 	let failed = $state('');
+
+	// "It went fine" is remembered on this phone so the question is not asked on every visit
+	// The page keys this component on the session
+	const answeredKey = (): string => `tm-check-ok-${sessionId}`;
+	const isTrue = (value: unknown): value is boolean => value === true;
+	// Unknown until mounted, so the card appears late rather than jumping away on every visit
+	let answeredFine = $state<boolean>();
+	onMount(() => {
+		answeredFine = readDraft(browserStorage(), answeredKey(), false, isTrue);
+	});
+	function wentFine(): void {
+		answeredFine = true;
+		writeDraft(browserStorage(), answeredKey(), true);
+	}
 </script>
 
 {#snippet lowerForm(lowered: number, label: string, secondary: boolean)}
@@ -51,14 +67,14 @@
 
 {#if check.kind === 'missedReps'}
 	<section class="card check warning">
-		<h3>Training max er trolig for tung</h3>
+		<h3>Training max er trolig for høy</h3>
 		<p>
-			Du fikk {check.actualReps} av minst {check.minimumReps} reps på toppsettet. Wendler anbefaler å
-			senke training max med 10 % ({formatKg(trainingMax)} → {formatKg(check.lowered)}).
+			Toppsettet ble {formatReps(check.actualReps)}, under kravet på {check.minimumReps}. Wendler
+			anbefaler å senke training max med 10 % ({formatKg(trainingMax)} → {formatKg(check.lowered)}).
 		</p>
 		{@render lowerForm(check.lowered, 'Senk TM til', false)}
 	</section>
-{:else if check.kind === 'askIfHeavy'}
+{:else if check.kind === 'askIfHeavy' && answeredFine === false}
 	<section class="card check">
 		<h3>Føltes 100 %-settet tungt?</h3>
 		<p>
@@ -66,6 +82,7 @@
 			training max for høy og bør senkes 10 %.
 		</p>
 		{@render lowerForm(check.lowered, 'Ja, senk TM til', true)}
+		<button class="btn btn-secondary" type="button" onclick={wentFine}>Nei, det gikk greit</button>
 	</section>
 {/if}
 

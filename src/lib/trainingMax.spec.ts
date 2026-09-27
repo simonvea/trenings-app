@@ -252,6 +252,22 @@ describe('trainingMaxCheck', () => {
 		});
 	});
 
+	describe('given a TM Test week set at 100 % with fewer reps than planned', () => {
+		it('when checking, then a lower training max is suggested', () => {
+			// Arrange
+			const session = {
+				trainingMax: 100,
+				topSet: { percentage: 1, plannedWeight: 100, plannedReps: 5, actualReps: 3, isAmrap: false }
+			};
+
+			// Act
+			const check = trainingMaxCheck(session);
+
+			// Assert
+			expect(check).toEqual({ kind: 'missedReps', actualReps: 3, minimumReps: 5, lowered: 90 });
+		});
+	});
+
 	describe('given a plain top set below 100 %', () => {
 		it('when checking, then there is nothing to ask', () => {
 			// Arrange

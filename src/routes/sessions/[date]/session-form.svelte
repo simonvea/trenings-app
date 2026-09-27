@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { browserStorage, clearDrafts, readDraft, writeDraft } from '$lib/draft';
-	import { formatKg, formatSupplemental } from '$lib/format';
+	import { formatKg, formatReps, formatSupplemental } from '$lib/format';
 	import type { AssistanceExerciseDb, MainLift } from '$lib/types';
 	import type { PlannedAssistance } from './+page.server';
 	import AssistanceSelect from './assistance-select.svelte';
@@ -94,14 +94,14 @@
 	const amrapTarget = topSet.isAmrap ? suggestedAmrapReps(topSet.weight, trainingMax) : topSet.reps;
 
 	const allSetsDone = $derived(
-		[...warmupSets, ...workSets].every((s) => s.done || s.isAmrap) &&
-			(!topSet.isAmrap || amrapReps !== '') &&
+		[...warmupSets, ...workSets].every((s) => s.done || s.recordsReps) &&
+			(!topSet.recordsReps || amrapReps !== '') &&
 			supplementalDone.every(Boolean)
 	);
 	const totalCount = $derived(warmupSets.length + workSets.length + supplementalDone.length);
 	const doneCount = $derived(
 		warmupSets.filter((s) => s.done).length +
-			workSets.filter((s) => (s.isAmrap ? amrapReps !== '' : s.done)).length +
+			workSets.filter((s) => (s.recordsReps ? amrapReps !== '' : s.done)).length +
 			supplementalDone.filter(Boolean).length
 	);
 	const hasSupplemental = start.mainLift.supplemental.sets > 0;
@@ -181,12 +181,12 @@
 		<section class="card group">
 			<h2 class="section-title">Arbeidssett</h2>
 			{#each workSets as set, index (index)}
-				{#if set.isAmrap}
+				{#if set.recordsReps}
 					<label class="set amrap" class:done={amrapReps !== ''}>
-						<span class="reps num">{set.reps}+</span>
+						<span class="reps num">{set.reps}{set.isAmrap ? '+' : ''}</span>
 						<span class="times">×</span>
 						<span class="weight num">{formatKg(set.weight)}</span>
-						<span class="visually-hidden">Antall reps på siste sett</span>
+						<span class="visually-hidden">Antall reps du fikk på siste sett</span>
 						<input
 							class="num"
 							type="text"
@@ -196,10 +196,17 @@
 							name="top_set_actual_reps"
 							placeholder="–"
 							bind:value={amrapReps}
-							required
 						/>
 					</label>
-					<p class="hint">Mål: {amrapTarget}+ reps. Skriv inn hvor mange du fikk.</p>
+					<p class="hint">
+						{#if set.isAmrap}
+							Minst {formatReps(set.reps)}{amrapTarget > set.reps
+								? `, prøv på ${amrapTarget}`
+								: ''}. Skriv inn hvor mange du fikk.
+						{:else}
+							Skriv inn hvor mange reps du fikk av {set.reps}.
+						{/if}
+					</p>
 				{:else}
 					<label class="set" class:done={set.done}>
 						<input class="visually-hidden" type="checkbox" bind:checked={set.done} />
@@ -214,6 +221,7 @@
 			<input type="hidden" name="top_set_weight" value={topSet.weight} />
 			<input type="hidden" name="top_set_reps" value={topSet.reps} />
 			<input type="hidden" name="top_set_amrap" value={topSet.isAmrap} />
+			<input type="hidden" name="top_set_records_reps" value={Boolean(topSet.recordsReps)} />
 		</section>
 
 		{#if hasSupplemental}

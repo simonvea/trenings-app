@@ -17,7 +17,7 @@ export function completeMainWorkout({
 	plannedWeight: number;
 	plannedReps: number;
 	actualWeight: number;
-	actualReps: number;
+	actualReps: number | null;
 	isAmrap: boolean;
 	hasDoneSupplemental: boolean;
 	notes: string;

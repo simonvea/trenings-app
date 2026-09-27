@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { formatDayHeading } from '$lib/date';
-	import { formatKg, formatSupplemental } from '$lib/format';
+	import { formatKg, formatReps, formatSupplemental } from '$lib/format';
 	import type { AssistanceExerciseDb, AssistanceWorkDb, MainLift, MainWorkDb } from '$lib/types';
 
 	type Props = {
@@ -28,7 +28,9 @@
 				<span>
 					{work.planned_reps}{work.is_amrap ? '+' : ''} × {formatKg(work.planned_weight)}
 				</span>
-				<strong>{work.actual_reps} {work.actual_reps === 1 ? 'rep' : 'reps'}</strong>
+				<strong class:missed={work.actual_reps == null}>
+					{work.actual_reps == null ? 'Ikke tatt' : formatReps(work.actual_reps)}
+				</strong>
 			</li>
 		{/each}
 	</ul>
