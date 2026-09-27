@@ -1,13 +1,14 @@
-import type { MainLifts } from './types';
+import type { LiftName } from './types';
 
-const liftTranslations: Record<string, MainLifts> = {
+const liftTranslations: Record<string, LiftName> = {
 	Squat: 'Knebøy',
 	Deadlift: 'Markløft',
 	'Overhead Press': 'Skulderpress',
-	'Bench Press': 'Benkpress'
+	'Bench Press': 'Benkpress',
+	'Barbell Row': 'Roing'
 };
 
-export function translateLiftName(lift: string): MainLifts {
+export function translateLiftName(lift: string): LiftName {
 	if (!(lift in liftTranslations)) throw new Error('Unknown lift name!');
 	return liftTranslations[lift];
 }

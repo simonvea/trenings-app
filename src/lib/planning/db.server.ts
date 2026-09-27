@@ -162,8 +162,8 @@ export function updateTrainingMaxes(
 	trainingMaxes: { liftId: number; trainingMax: number }[]
 ): void {
 	assert(
-		trainingMaxes.every((tm) => tm.trainingMax > 0),
-		`Training max must be positive: ${JSON.stringify(trainingMaxes)}`
+		trainingMaxes.every((tm) => tm.trainingMax >= 0),
+		`Training max must not be negative: ${JSON.stringify(trainingMaxes)}`
 	);
 
 	transaction(() => {

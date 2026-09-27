@@ -18,8 +18,8 @@ export const actions = {
 			trainingMax: Number(data.get(`tm_${id}`))
 		}));
 
-		if (trainingMaxes.some((tm) => !(tm.trainingMax > 0)))
-			return fail(400, { tmError: 'Training max må være et positivt tall' });
+		if (trainingMaxes.some((tm) => !(tm.trainingMax >= 0)))
+			return fail(400, { tmError: 'Training max må være 0 eller mer' });
 
 		updateTrainingMaxes(trainingMaxes);
 		return { tmSaved: true };

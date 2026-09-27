@@ -3,6 +3,8 @@ export type PlanFocus = 'Volum' | 'Intensitet' | 'PR' | 'Deload' | 'TM test';
 export type SupplementalTemplateName = 'FSL' | 'TM test' | 'Deload';
 export type Structure = '5/3/1' | '3/5/1';
 export type MainLifts = 'Knebøy' | 'Markløft' | 'Benkpress' | 'Skulderpress';
+// Rows can replace a main lift in a block, but are not part of the classic four
+export type LiftName = MainLifts | 'Roing';
 export type Days = 'Mandag' | 'Tirsdag' | 'Torsdag' | 'Fredag';
 export type Week = { day: Days; lift: MainLifts }[];
 
@@ -27,7 +29,7 @@ export type SupplementalWork = {
 	name: string;
 };
 export type MainLift = {
-	name: MainLifts;
+	name: LiftName;
 	warmupSets: Set[];
 	sets: Set[];
 	supplemental: SupplementalWork;

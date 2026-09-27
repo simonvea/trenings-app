@@ -18,14 +18,16 @@ npm run dev
 ```
 
 The database file is created on first start, and migrations in `src/lib/server/migrations/`
-run automatically. A new database comes with the four main lifts, week templates,
-supplemental templates, assistance exercises and the Triumvirate program template.
+run automatically. A new database comes with the four main lifts, Barbell Row as an
+alternative main lift, week templates, supplemental templates, assistance exercises and the
+Triumvirate program template.
 
 ## Using the app
 
 1. Open `/admin` and set the training max for each lift.
 2. Click **Ny blokk**, pick a program template (e.g. Triumvirate), a name and a start date
-   (must be a Monday). Training days, cycles and assistance exercises are prefilled from the
+   (must be a Monday). Choose the lift for each training day, e.g. Barbell Row instead of
+   Overhead Press. Training days, cycles and assistance exercises are prefilled from the
    template and can be adjusted. The preview shows the dates of each cycle.
 3. Create the block. All workout sessions are generated.
 4. On training days, open **Dagens økt** (`/sessions/<date>`) to see the main sets and the

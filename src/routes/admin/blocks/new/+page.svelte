@@ -76,6 +76,14 @@
 		cycles.push({ type: 'leader', supplementalTemplateId });
 	}
 
+	// Assistance is kept for every lift, so swapping a day's lift and back keeps earlier edits.
+	// Only the lifts trained in this block are shown and submitted.
+	const blockAssistance = $derived(
+		[...new Set(days.map((d) => d.liftId))].flatMap((liftId) =>
+			assistance.filter((a) => a.liftId === liftId)
+		)
+	);
+
 	const liftName = (id: number): string =>
 		translateLiftName(data.lifts.find((l) => l.id === id)?.name ?? '');
 
@@ -236,7 +244,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each assistance as slot (slot.liftId + '-' + slot.position)}
+				{#each blockAssistance as slot (slot.liftId + '-' + slot.position)}
 					<tr>
 						<td>
 							{#if slot.position === 1}{liftName(slot.liftId)}{/if}
