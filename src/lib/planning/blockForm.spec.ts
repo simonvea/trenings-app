@@ -23,7 +23,11 @@ const validFields = (): Fields => ({
 	assistance_position: ['1', '2'],
 	assistance_exercise: ['9', '12'],
 	assistance_sets: ['5', '5'],
-	assistance_reps: ['15', '10']
+	assistance_reps: ['15', '10'],
+	training_max_1: '100',
+	training_max_2: '82,5',
+	training_max_3: '120',
+	training_max_4: '50'
 });
 
 const toFormData = (fields: Fields): FormData => {
@@ -70,6 +74,12 @@ describe('parseBlockForm', () => {
 					assistance: [
 						{ liftId: 1, position: 1, exerciseId: 9, sets: 5, reps: 15 },
 						{ liftId: 1, position: 2, exerciseId: 12, sets: 5, reps: 10 }
+					],
+					trainingMaxes: [
+						{ liftId: 1, trainingMax: 100 },
+						{ liftId: 2, trainingMax: 82.5 },
+						{ liftId: 4, trainingMax: 50 },
+						{ liftId: 3, trainingMax: 120 }
 					]
 				}
 			});
@@ -147,6 +157,30 @@ describe('parseBlockForm', () => {
 		it('when assistance sets are not positive, then assistance has an error', () => {
 			expect(errorsFor({ ...validFields(), assistance_sets: ['0', '5'] })).toHaveProperty(
 				'assistance'
+			);
+		});
+
+		it('when a lift in the block has no training max, then training_max has an error', () => {
+			expect(errorsFor({ ...validFields(), training_max_3: '0' })).toHaveProperty('training_max');
+		});
+
+		it('when a training max is missing, then training_max has an error', () => {
+			const fields = validFields();
+			delete fields.training_max_4;
+			expect(errorsFor(fields)).toHaveProperty('training_max');
+		});
+
+		it('when a training max is negative, then training_max has an error', () => {
+			expect(errorsFor({ ...validFields(), training_max_1: '-5' })).toHaveProperty('training_max');
+		});
+
+		it('when a day has no lift, then only days has an error', () => {
+			expect(Object.keys(errorsFor({ ...validFields(), day_1_lift: '' }))).toEqual(['days']);
+		});
+
+		it('when a training max is not a number, then training_max has an error', () => {
+			expect(errorsFor({ ...validFields(), training_max_2: 'tung' })).toHaveProperty(
+				'training_max'
 			);
 		});
 	});

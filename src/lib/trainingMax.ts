@@ -1,34 +1,107 @@
-import type { TrainingMax } from '$lib/types';
+import { normalizeWeight } from './core';
+import { parseDecimal } from './format';
 
-const trainingMax: TrainingMax = {
-	Knebøy: 61.2,
-	Benkpress: 55.8,
-	Markløft: 88.2,
-	Skulderpress: 31.5,
-	updatedAt: '2025-10-10'
+export type TestSet = { weight: number; reps: number };
+
+// 90 % is the original 5/3/1 training max; the existing maxes were set this way
+const TRAINING_MAX_SHARE = 0.9;
+// Wendler's advice when a training max turns out too heavy
+const TOO_HEAVY_SHARE = 0.9;
+// Rep-based estimates drift badly above ten reps
+const MAX_TEST_REPS = 10;
+// Catches a missing decimal comma (1025 for 102,5) before it can become a block's training max
+const MAX_TEST_WEIGHT = 500;
+
+// Rounded down so a rounding step never makes the training max heavier than the test
+const roundDownToHalfKg = (kg: number): number => Math.floor(kg * 2 + 1e-9) / 2;
+
+export const estimateOneRepMax = ({ weight, reps }: TestSet): number =>
+	reps === 1 ? weight : weight * reps * 0.0333 + weight;
+
+export const trainingMaxFromTest = (set: TestSet): number =>
+	roundDownToHalfKg(estimateOneRepMax(set) * TRAINING_MAX_SHARE);
+
+export const lowerTrainingMax = (trainingMax: number): number =>
+	roundDownToHalfKg(trainingMax * TOO_HEAVY_SHARE);
+
+export type ParseResult<T> = { ok: true; value: T } | { ok: false; error: string };
+
+export const parseTestSet = (input: { weight: string; reps: string }): ParseResult<TestSet> => {
+	const weight = parseDecimal(input.weight);
+	if (weight === null || weight <= 0) return { ok: false, error: 'Skriv inn vekten du løftet' };
+	if (weight > MAX_TEST_WEIGHT)
+		return { ok: false, error: `Vekten kan ikke være over ${MAX_TEST_WEIGHT} kg` };
+
+	const repsText = input.reps.trim();
+	const reps = Number(repsText);
+	if (!/^\d+$/.test(repsText) || reps < 1 || reps > MAX_TEST_REPS)
+		return { ok: false, error: `Reps må være et heltall fra 1 til ${MAX_TEST_REPS}` };
+
+	return { ok: true, value: { weight, reps } };
 };
 
-export const getTrainingMax = () => trainingMax;
+export type TrainingMaxSource = 'current' | 'test';
 
-const canUpdateTM = (oldTM: TrainingMax) => {
-	const minimumDaysSinceUpdate = 19;
-	const today = new Date();
-	const lastUpdated = new Date(oldTM.updatedAt);
-	const daysDifference = (today.getTime() - lastUpdated.getTime()) / (1000 * 3600 * 24);
-
-	return daysDifference > minimumDaysSinceUpdate;
+// All timestamps are SQLite CURRENT_TIMESTAMP (UTC, same format), so they compare as text.
+// A test logged after the last change is the better starting point for a new block, unless
+// it was already offered, and turned down, when the last block was created.
+export const defaultTrainingMaxSource = (
+	lift: { trainingMax: number; changedAt: string },
+	test: { createdAt: string } | undefined,
+	lastBlockCreatedAt = ''
+): TrainingMaxSource => {
+	if (!test) return 'current';
+	if (!lift.trainingMax) return 'test';
+	const decidedAt = lift.changedAt > lastBlockCreatedAt ? lift.changedAt : lastBlockCreatedAt;
+	return test.createdAt > decidedAt ? 'test' : 'current';
 };
 
-export const calculateTM = (oldTM: TrainingMax): TrainingMax => {
-	const upperBodyIncrement = 2.5;
-	const lowerBodyIncrement = 5;
-	if (!canUpdateTM(oldTM)) throw new Error('Too early to update TM!!');
+export type TopSetResult = {
+	percentage: number;
+	plannedWeight: number;
+	plannedReps: number;
+	actualReps: number;
+	isAmrap: boolean;
+};
 
-	return {
-		Knebøy: oldTM.Knebøy + lowerBodyIncrement,
-		Benkpress: oldTM.Benkpress + upperBodyIncrement,
-		Markløft: oldTM.Markløft + lowerBodyIncrement,
-		Skulderpress: oldTM.Skulderpress + upperBodyIncrement,
-		updatedAt: new Date().toJSON().slice(0, 10)
-	};
+export type TrainingMaxCheck =
+	| { kind: 'none' }
+	| { kind: 'missedReps'; actualReps: number; minimumReps: number; lowered: number }
+	| { kind: 'askIfHeavy'; lowered: number }
+	| { kind: 'changed'; trainingMax: number };
+
+// Wendler: missing the minimum reps on the + set, or a 100 % set in the 7th week that
+// felt too heavy, means the training max is too heavy.
+export const trainingMaxCheck = ({
+	trainingMax,
+	sessionTrainingMax,
+	topSet
+}: {
+	trainingMax: number;
+	// Stored since migration 004; older sessions fall back to the planned weight
+	sessionTrainingMax?: number;
+	topSet: TopSetResult;
+}): TrainingMaxCheck => {
+	const atFullTrainingMax = !topSet.isAmrap && topSet.percentage >= 1;
+	const missedReps =
+		(topSet.isAmrap || atFullTrainingMax) && topSet.actualReps < topSet.plannedReps;
+	if (!missedReps && !atFullTrainingMax) return { kind: 'none' };
+
+	const changed =
+		sessionTrainingMax === undefined
+			? // The planned weight came from the training max at the time. Rounding to 2.5 kg
+				// hides small changes, which is why the training max itself is stored now.
+				normalizeWeight(trainingMax * topSet.percentage) !== topSet.plannedWeight
+			: sessionTrainingMax !== trainingMax;
+	if (changed) return { kind: 'changed', trainingMax };
+
+	const lowered = lowerTrainingMax(trainingMax);
+	return missedReps
+		? {
+				kind: 'missedReps',
+				actualReps: topSet.actualReps,
+				minimumReps: topSet.plannedReps,
+				lowered
+			}
+		: { kind: 'askIfHeavy', lowered };
 };

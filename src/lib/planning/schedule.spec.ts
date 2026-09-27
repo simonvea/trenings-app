@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planBlock, type ScheduleInput } from './schedule';
+import { mondayAfter, overlappingBlock, planBlock, type ScheduleInput } from './schedule';
 
 const weekTemplateIds = [11, 12, 13] as const;
 
@@ -140,6 +140,70 @@ describe('planBlock', () => {
 
 			// Assert
 			expect(act).toThrow('7th week');
+		});
+	});
+});
+
+describe('mondayAfter', () => {
+	it.each([
+		['2026-11-08', '2026-11-09'],
+		['2026-11-09', '2026-11-16'],
+		['2026-11-11', '2026-11-16']
+	])('when the day is %s, then the next Monday is %s', (date, expected) => {
+		// Arrange, Act
+		const monday = mondayAfter(date);
+
+		// Assert
+		expect(monday).toBe(expected);
+	});
+});
+
+describe('overlappingBlock', () => {
+	const running = { name: 'Triumvirate høst', startDate: '2026-09-21', endDate: '2026-11-08' };
+
+	describe('given a block that runs from 21 September until 8 November', () => {
+		it('when a new block starts before it ends, then that block is returned', () => {
+			// Arrange
+			const newBlock = { startDate: '2026-09-28', endDate: '2026-12-20' };
+
+			// Act
+			const overlap = overlappingBlock(newBlock, [running]);
+
+			// Assert
+			expect(overlap).toBe(running);
+		});
+
+		it('when a new block starts on its last day, then that block is returned', () => {
+			// Arrange
+			const newBlock = { startDate: '2026-11-08', endDate: '2026-12-20' };
+
+			// Act
+			const overlap = overlappingBlock(newBlock, [running]);
+
+			// Assert
+			expect(overlap).toBe(running);
+		});
+
+		it('when a new block starts the Monday after, then there is no overlap', () => {
+			// Arrange
+			const newBlock = { startDate: '2026-11-09', endDate: '2026-12-20' };
+
+			// Act
+			const overlap = overlappingBlock(newBlock, [running]);
+
+			// Assert
+			expect(overlap).toBeUndefined();
+		});
+
+		it('when a new block ends before it starts, then there is no overlap', () => {
+			// Arrange
+			const newBlock = { startDate: '2026-08-03', endDate: '2026-09-20' };
+
+			// Act
+			const overlap = overlappingBlock(newBlock, [running]);
+
+			// Assert
+			expect(overlap).toBeUndefined();
 		});
 	});
 });

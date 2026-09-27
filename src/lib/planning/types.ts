@@ -28,6 +28,8 @@ export type AssistancePlan = {
 	reps: number;
 };
 
+export type TrainingMaxPlan = { liftId: number; trainingMax: number };
+
 export type NewBlock = {
 	name: string;
 	goals?: string;
@@ -36,6 +38,8 @@ export type NewBlock = {
 	days: TrainingDay[];
 	cycles: CyclePlan[];
 	assistance: AssistancePlan[];
+	// Written to the lifts when the block is created
+	trainingMaxes: TrainingMaxPlan[];
 };
 
 export type PlannedSession = {

@@ -1,77 +1,181 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { formatShortDate } from '$lib/date';
 	import { translateCycleType, translateDay, translateLiftName } from '$lib/helpers';
-	const { data } = $props();
+	import type { PageProps } from './$types';
 
-	const { block, cycles, lifts } = data;
-	const is4dayWeek = !!block.training_day_4;
+	const { data }: PageProps = $props();
 
-	const sortedLifts = lifts.sort((a, b) => a.id - b.id);
-	const normalizeDate = (dateString: string) => new Date(dateString).toLocaleDateString('no');
+	const block = $derived(data.block);
+	const liftName = (id: number | undefined): string =>
+		translateLiftName(data.lifts.find((l) => l.id === id)?.name ?? '');
 
-	const currentCycleId = cycles.filter((c) => !c.completed_date)[0]?.id; // list is already sorted from db so we can pick first.
-	const startDate = normalizeDate(cycles[0].start_date);
-	const endDate =
-		cycles[cycles.length - 1].end_date && normalizeDate(cycles[cycles.length - 1].end_date!);
+	const trainingDays = $derived(
+		[
+			{ day: block.training_day_1, liftId: block.lift_day_1_id },
+			{ day: block.training_day_2, liftId: block.lift_day_2_id },
+			{ day: block.training_day_3, liftId: block.lift_day_3_id },
+			{ day: block.training_day_4, liftId: block.lift_day_4_id }
+		].filter((d): d is { day: string; liftId: number } => !!d.day && !!d.liftId)
+	);
+
+	const currentCycleId = $derived(
+		data.cycles.find((c) => c.sessions_completed < c.sessions_total)?.id
+	);
+	const startDate = $derived(data.cycles[0]?.start_date);
+	const endDate = $derived(data.cycles.at(-1)?.end_date);
 </script>
 
-<h1>{block.name}</h1>
-<h2>Mål:</h2>
-<p>{block.goals}</p>
+<header class="intro">
+	{#if startDate && endDate}
+		<p class="muted num">{formatShortDate(startDate)} – {formatShortDate(endDate)}</p>
+	{/if}
+	{#if block.completed_date}
+		<p class="badge">Fullført {formatShortDate(block.completed_date)}</p>
+	{/if}
+	{#if block.goals}
+		<p class="goals">{block.goals}</p>
+	{/if}
+</header>
 
-<b>Start dato:</b>
-<span>{startDate}</span>
-<br />
-<b>Slutt dato:</b>
-<span>{endDate}</span>
-
-<h3>Treningsdager</h3>
-<table>
-	<thead>
-		<tr>
-			<th>{translateDay(block.training_day_1)}</th>
-			<th>{translateDay(block.training_day_2)}</th>
-			<th>{translateDay(block.training_day_3)}</th>
-			{#if is4dayWeek}
-				<th>{translateDay(block.training_day_4!)}</th>
-			{/if}
-		</tr>
-	</thead>
-	<tbody>
-		<tr>
-			<td>{translateLiftName(sortedLifts[block.lift_day_1_id - 1].name)}</td>
-			<td>{translateLiftName(sortedLifts[block.lift_day_2_id - 1].name)}</td>
-			<td>{translateLiftName(sortedLifts[block.lift_day_3_id - 1].name)}</td>
-			{#if is4dayWeek}
-				<td>{translateLiftName(sortedLifts[block.lift_day_4_id! - 1].name)}</td>
-			{/if}
-		</tr>
-	</tbody>
-</table>
-
-<h3>Plan</h3>
-<table>
-	<thead>
-		<tr>
-			<th>Syklus</th>
-			<th>Mal</th>
-			<th>Done</th>
-		</tr>
-	</thead>
-	<tbody>
-		{#each cycles as cycle (cycle.id)}
-			<tr onclick={() => goto(resolve('/cycles/[id]', { id: String(cycle.id) }))}>
-				<td>{translateCycleType(cycle.cycle_type)}</td>
-				<td>{cycle.supplemental_name || cycle.seventh_week_name}</td>
-				<td>
-					{#if !!cycle.completed_date}
-						{normalizeDate(cycle.completed_date)}
-					{:else if cycle.id == currentCycleId}
-						Pågående
-					{/if}
-				</td>
-			</tr>
+<section>
+	<h2 class="section-title">Treningsdager</h2>
+	<ul class="days">
+		{#each trainingDays as { day, liftId } (day)}
+			<li class="card">
+				<span class="muted">{translateDay(day)}</span>
+				<strong>{liftName(liftId)}</strong>
+			</li>
 		{/each}
-	</tbody>
-</table>
+	</ul>
+</section>
+
+<section>
+	<h2 class="section-title">Sykluser</h2>
+	<ol class="card cycles">
+		{#each data.cycles as cycle (cycle.id)}
+			<li>
+				<a href={resolve('/cycles/[id]', { id: String(cycle.id) })}>
+					<span class="number num">{cycle.cycle_number_in_block}</span>
+					<span class="what">
+						<strong>
+							{translateCycleType(cycle.cycle_type)} · {cycle.supplemental_name ??
+								cycle.seventh_week_name}
+						</strong>
+						<span class="muted num">
+							{formatShortDate(cycle.start_date)}{cycle.end_date
+								? ` – ${formatShortDate(cycle.end_date)}`
+								: ''} · {cycle.sessions_completed}/{cycle.sessions_total} økter
+						</span>
+					</span>
+					{#if cycle.sessions_total > 0 && cycle.sessions_completed === cycle.sessions_total}
+						<span class="status done">Ferdig</span>
+					{:else if cycle.id === currentCycleId}
+						<span class="status current">Pågår</span>
+					{/if}
+				</a>
+			</li>
+		{/each}
+	</ol>
+</section>
+
+<style>
+	.intro p {
+		margin: 0 0.25rem 0.5rem;
+	}
+
+	.goals {
+		white-space: pre-wrap;
+	}
+
+	.badge {
+		display: inline-block;
+		padding: 0.2rem 0.7rem;
+		border-radius: 999px;
+		background: var(--success-soft);
+		color: var(--success);
+		font-weight: 700;
+	}
+
+	section {
+		margin-top: 1.5rem;
+	}
+
+	.days {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+		gap: 0.5rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.days li {
+		display: flex;
+		flex-direction: column;
+		padding: 0.75rem 1rem;
+	}
+
+	.cycles {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		overflow: hidden;
+	}
+
+	.cycles li + li {
+		border-top: 1px solid var(--border);
+	}
+
+	.cycles a {
+		display: flex;
+		align-items: center;
+		gap: 0.9rem;
+		min-height: 64px;
+		padding: 0.7rem 1rem;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.cycles a:active {
+		background: var(--surface-2);
+	}
+
+	.number {
+		display: grid;
+		place-items: center;
+		width: 2rem;
+		height: 2rem;
+		flex-shrink: 0;
+		border-radius: 50%;
+		background: var(--surface-2);
+		font-weight: 700;
+	}
+
+	.what {
+		display: flex;
+		flex: 1;
+		flex-direction: column;
+	}
+
+	.what .muted {
+		font-size: 0.9rem;
+	}
+
+	.status {
+		padding: 0.15rem 0.6rem;
+		border-radius: 999px;
+		font-size: 0.8rem;
+		font-weight: 700;
+	}
+
+	.status.done {
+		background: var(--success-soft);
+		color: var(--success);
+	}
+
+	.status.current {
+		background: var(--accent-soft);
+		color: var(--accent);
+	}
+</style>

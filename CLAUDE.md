@@ -4,14 +4,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Commands
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run check` - Run Svelte type checking
-- `npm run lint` - Run linting (Prettier + ESLint)
-- `npm run format` - Format code with Prettier
-- `npm run test:unit` - Run unit tests with Vitest
-- `npm run test` - Run all tests
 - `npx vitest run --project server` - Run only server-side (node) tests, e.g. `src/lib/planning/*.spec.ts`
 
 Requires Node 24 (`.nvmrc`); `node:sqlite` `createTagStore` is missing in Node 22.
@@ -19,12 +11,7 @@ Requires Node 24 (`.nvmrc`); `node:sqlite` `createTagStore` is missing in Node 2
 
 ## Architecture
 
-This is a **5/3/1 strength training tracker** built with:
-
-- **SvelteKit** - Full-stack web framework with SSR
-- **SQLite** - Database using Node.js `DatabaseSync` API
-- **TypeScript** - Type safety throughout
-- **Adapter Node** - Deployed as a Node.js application via Docker (`docker-compose.yml`)
+This is a **5/3/1 strength training tracker**.
 
 ### Database Architecture
 
@@ -42,8 +29,10 @@ The app uses SQLite with a comprehensive schema for tracking 5/3/1 powerlifting 
 
 - `supplemental_templates` - FSL, BBB, SSL supplemental work patterns
 - `assistance_exercises` - Pull/push/legs accessory movements
-- `main_work`, `supplemental_work`, `assistance_work` - Actual workout data
+- `main_work`, `supplemental_work`, `assistance_work` - Actual workout data. `main_work.training_max`
+  is the TM the session was done at; completed sessions show weights from it, not the current TM
 - `training_max_history` - Historical training max progression
+- `training_max_tests` - Heavy test sets logged on the phone, with the TM calculated from them
 - `program_templates` (+ `_cycles`, `_assistance`) - Reusable block defaults (e.g. Triumvirate), copied into a block on creation
 - `block_assistance` - Planned assistance exercises per lift for a block
 
@@ -52,15 +41,26 @@ The app uses SQLite with a comprehensive schema for tracking 5/3/1 powerlifting 
 - `src/lib/server/db.ts` - SQLite connection using Node.js DatabaseSync, runs migrations on startup, `transaction()` helper
 - `src/lib/server/migrations/NNN_*.sql` - Schema migrations, tracked with `PRAGMA user_version`. Add a new numbered file for schema changes; never edit an applied one
 - `src/lib/planning/` - Block planning: `schedule.ts` (pure session date planning), `blockForm.ts` (form parsing/validation), `db.server.ts` (planning queries)
+- `src/lib/trainingMax.ts` - Pure TM rules: 1RM estimate, TM from a test, which TM to suggest
+  for a new block, and when to suggest lowering it after a session
 - `src/lib/types.ts` - TypeScript definitions for database entities
 - `src/routes/admin/` - Desktop admin: training maxes, blocks, new block from a program template
+- `src/routes/tm-tests/` - Phone page for logging TM tests
+- `src/routes/sessions/[date]/` - Phone session logging; `training-max-check.svelte` is the
+  post-session "lower TM" card
+
+Dates are local calendar days (`src/lib/date.ts`); the server clock may be UTC, so dates that
+matter to the user (session completion, test date) are sent from the phone.
 
 ### Planning workflow
 
 1. `/admin` - set training maxes (writes `training_max_history`), list and complete blocks
-2. `/admin/blocks/new` - pick a program template; its cycles and assistance prefill the form
+2. `/admin/blocks/new` - pick a program template; its cycles and assistance prefill the form.
+   Per lift, choose current TM or the latest test (`defaultTrainingMaxSource` picks the default).
+   A block may not overlap a running one
 3. On submit: `parseBlockForm` validates, `planBlock` computes cycles and session dates,
-   `createBlock` inserts block, cycles, `block_assistance` and `workout_sessions` in one transaction
+   `createBlock` inserts block, cycles, `block_assistance` and `workout_sessions` and writes the
+   chosen training maxes in one transaction
 4. `/sessions/[date]` - shows main work, supplemental (hidden when the template has 0 sets) and
    the block's planned assistance for that lift
 
@@ -80,21 +80,6 @@ The app uses SQLite with a comprehensive schema for tracking 5/3/1 powerlifting 
 - `src/lib/auth/session.ts`: stateless token `<expiresAtMs>.<hmac>`, 1 year TTL, no DB
 - Env `AUTH_PASSWORD` and `AUTH_SECRET` (required at startup). Rotate `AUTH_SECRET` to log out all devices
 - Public paths: `/login`, `/health` (docker healthcheck)
-
-### Data Flow
-
-1. **Server Load Functions** (`+page.server.ts`) query SQLite using tagged template literals
-2. **Database queries** return typed results matching TypeScript interfaces
-3. **Components** receive server data and render workout sessions, cycles, blocks
-4. **Forms** submit back to server actions for database updates
-
-### Key Patterns
-
-- Uses SvelteKit's server-side data loading pattern extensively
-- Database access through `sql` tagged template function from `db.ts`
-- Norwegian language used in some UI elements and types
-- Training max calculations based on percentages from week templates
-- Workout sessions generated by `planBlock` when a block is created in `/admin/blocks/new`
 
 # SvelteKit
 

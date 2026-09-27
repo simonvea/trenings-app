@@ -4,14 +4,23 @@
 	let { form }: PageProps = $props();
 </script>
 
-<form method="POST" class="login">
+<form method="POST" class="card login">
+	<img src="/icons/icon-192.png" alt="" width="64" height="64" />
 	<label>
 		Passord
-		<input type="password" name="password" autocomplete="current-password" required />
+		<!-- svelte-ignore a11y_autofocus -->
+		<input
+			type="password"
+			name="password"
+			autocomplete="current-password"
+			required
+			autofocus
+			aria-invalid={form?.error ? 'true' : undefined}
+		/>
 	</label>
-	<button type="submit">Logg inn</button>
+	<button class="btn" type="submit">Logg inn</button>
 	{#if form?.error}
-		<p class="error">{form.error}</p>
+		<p class="error" role="alert">{form.error}</p>
 	{/if}
 </form>
 
@@ -20,33 +29,32 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
-		max-width: 320px;
+		max-width: 360px;
 		margin: 2rem auto;
+		padding: 1.5rem;
+	}
+
+	img {
+		align-self: center;
+		border-radius: 14px;
 	}
 
 	label {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: 0.3rem;
+		font-weight: 600;
 	}
 
-	input,
-	button {
-		font: inherit;
-		padding: 0.75rem;
-		border-radius: 8px;
-		border: 1px solid #d0d0d0;
+	input {
+		min-height: 48px;
 	}
 
-	button {
-		background: #2563eb;
-		color: white;
-		border: none;
-		cursor: pointer;
+	.btn {
+		min-height: 48px;
 	}
 
 	.error {
-		color: #b91c1c;
 		margin: 0;
 	}
 </style>

@@ -18,6 +18,22 @@ const addDays = (date: string, days: number): string =>
 
 export const isMonday = (date: string): boolean => parseDate(date).getUTCDay() === 1;
 
+export const mondayAfter = (date: string): string => {
+	const daysUntilMonday = (8 - parseDate(date).getUTCDay()) % 7 || 7;
+	return addDays(date, daysUntilMonday);
+};
+
+// A day shows one session, so two running blocks must not share any dates
+type Period = { startDate: string; endDate: string };
+
+export const overlappingBlock = <T extends Period>(
+	newBlock: Period,
+	runningBlocks: T[]
+): T | undefined =>
+	runningBlocks.find(
+		(block) => newBlock.startDate <= block.endDate && block.startDate <= newBlock.endDate
+	);
+
 const weeksIn = (cycle: CyclePlan): number => (cycle.type === '7th week' ? 1 : 3);
 
 const weekTemplateFor = (

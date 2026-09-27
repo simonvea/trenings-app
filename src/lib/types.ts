@@ -21,11 +21,13 @@ export type Set = {
 	reps: number;
 	weight: number;
 	isAmrap: boolean;
+	// Reps are typed in rather than ticked: AMRAP sets, and the 7th week set at 100 %
+	recordsReps?: boolean;
 };
 export type SupplementalWork = {
 	sets: number;
 	reps: number;
-	weight: number;
+	weight: number | undefined;
 	name: string;
 };
 export type MainLift = {
@@ -108,8 +110,8 @@ export type WeekTemplateDb = {
 	set_2_reps: number;
 	set_3_percentage: number;
 	set_3_reps: number; // negative means AMRAP (as many reps as possible)
-	set_4_percentage: number; // Set only applicable for "7th week"
-	set_4_reps: number;
+	set_4_percentage?: number; // Set only applicable for "7th week"
+	set_4_reps?: number;
 };
 
 export type SupplementalTemplateDb = {
@@ -144,8 +146,10 @@ export type MainWorkDb = {
 	planned_weight: number;
 	planned_reps: number;
 	actual_weight?: number;
-	actual_reps?: number;
+	actual_reps?: number | null;
 	is_amrap?: boolean;
+	supplemental_done: boolean;
+	training_max?: number | null;
 	rpe?: number;
 	notes?: string;
 };
