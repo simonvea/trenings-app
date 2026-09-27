@@ -24,15 +24,22 @@ Triumvirate program template.
 
 ## Using the app
 
-1. Open `/admin` and set the training max for each lift.
+1. Find a training max: either set it directly in `/admin`, or test it at the gym on the
+   phone under **TM-test** (`/tm-tests`, linked from Home). Log one heavy set of 3–5 reps;
+   the app estimates the 1RM (Wendler: weight × reps × 0.0333 + weight) and suggests a
+   training max of 90 % of it. Testing a couple of lifts per session is fine.
 2. Click **Ny blokk**, pick a program template (e.g. Triumvirate), a name and a start date
-   (must be a Monday). Choose the lift for each training day, e.g. Barbell Row instead of
-   Overhead Press. Training days, cycles and assistance exercises are prefilled from the
-   template and can be adjusted. The preview shows the dates of each cycle.
-3. Create the block. All workout sessions are generated.
-4. On training days, open **Dagens økt** (`/sessions/<date>`) to see the main sets and the
-   planned assistance, and log the workout.
-5. When a block is done, mark it as completed in `/admin`.
+   (a Monday, defaulting to the first one after any running block; blocks may not overlap).
+   Choose the lift for each training day, e.g. Barbell Row instead of Overhead Press.
+   Training days, cycles and assistance exercises are prefilled from the template and can be
+   adjusted. For each lift, choose the current training max or the one from its latest test.
+3. Create the block. All workout sessions are generated and the chosen training maxes saved.
+4. On training days, open **Økt** (`/sessions/<date>`) on the phone to tick off sets and log
+   the workout. Unsaved input survives the app being closed.
+5. If the AMRAP set misses its minimum reps, or the 100 % set in a 7th week is missed or feels
+   heavy, the completed session suggests lowering the training max by 10 % (with undo).
+   Completed sessions keep the weights they were done with.
+6. When a block is done, mark it as completed in `/admin`.
 
 Program templates are seeded via migrations; there is no template editor yet. To add a
 template, add a new migration that inserts into `program_templates`,

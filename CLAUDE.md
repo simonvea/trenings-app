@@ -29,8 +29,10 @@ The app uses SQLite with a comprehensive schema for tracking 5/3/1 powerlifting 
 
 - `supplemental_templates` - FSL, BBB, SSL supplemental work patterns
 - `assistance_exercises` - Pull/push/legs accessory movements
-- `main_work`, `supplemental_work`, `assistance_work` - Actual workout data
+- `main_work`, `supplemental_work`, `assistance_work` - Actual workout data. `main_work.training_max`
+  is the TM the session was done at; completed sessions show weights from it, not the current TM
 - `training_max_history` - Historical training max progression
+- `training_max_tests` - Heavy test sets logged on the phone, with the TM calculated from them
 - `program_templates` (+ `_cycles`, `_assistance`) - Reusable block defaults (e.g. Triumvirate), copied into a block on creation
 - `block_assistance` - Planned assistance exercises per lift for a block
 
@@ -39,15 +41,26 @@ The app uses SQLite with a comprehensive schema for tracking 5/3/1 powerlifting 
 - `src/lib/server/db.ts` - SQLite connection using Node.js DatabaseSync, runs migrations on startup, `transaction()` helper
 - `src/lib/server/migrations/NNN_*.sql` - Schema migrations, tracked with `PRAGMA user_version`. Add a new numbered file for schema changes; never edit an applied one
 - `src/lib/planning/` - Block planning: `schedule.ts` (pure session date planning), `blockForm.ts` (form parsing/validation), `db.server.ts` (planning queries)
+- `src/lib/trainingMax.ts` - Pure TM rules: 1RM estimate, TM from a test, which TM to suggest
+  for a new block, and when to suggest lowering it after a session
 - `src/lib/types.ts` - TypeScript definitions for database entities
 - `src/routes/admin/` - Desktop admin: training maxes, blocks, new block from a program template
+- `src/routes/tm-tests/` - Phone page for logging TM tests
+- `src/routes/sessions/[date]/` - Phone session logging; `training-max-check.svelte` is the
+  post-session "lower TM" card
+
+Dates are local calendar days (`src/lib/date.ts`); the server clock may be UTC, so dates that
+matter to the user (session completion, test date) are sent from the phone.
 
 ### Planning workflow
 
 1. `/admin` - set training maxes (writes `training_max_history`), list and complete blocks
-2. `/admin/blocks/new` - pick a program template; its cycles and assistance prefill the form
+2. `/admin/blocks/new` - pick a program template; its cycles and assistance prefill the form.
+   Per lift, choose current TM or the latest test (`defaultTrainingMaxSource` picks the default).
+   A block may not overlap a running one
 3. On submit: `parseBlockForm` validates, `planBlock` computes cycles and session dates,
-   `createBlock` inserts block, cycles, `block_assistance` and `workout_sessions` in one transaction
+   `createBlock` inserts block, cycles, `block_assistance` and `workout_sessions` and writes the
+   chosen training maxes in one transaction
 4. `/sessions/[date]` - shows main work, supplemental (hidden when the template has 0 sets) and
    the block's planned assistance for that lift
 
