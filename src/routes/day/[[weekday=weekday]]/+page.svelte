@@ -101,6 +101,9 @@
 				<span style:width="{status.progress * 100}%"></span>
 			</span>
 			<span class="muted num">{formatDuration(status.remainingMinutes)} igjen</span>
+			{#if session && status.current === sessionOwner}
+				<a class="btn start" href={resolve('/sessions/[date]', { date })}>Åpne økt</a>
+			{/if}
 			{#if status.next}
 				<span class="next">
 					Neste: <strong>{status.next.label}</strong>
@@ -268,6 +271,13 @@
 		display: block;
 		height: 100%;
 		background: var(--accent);
+	}
+
+	.start {
+		align-self: stretch;
+		margin-top: 0.5rem;
+		min-height: 52px;
+		font-size: 1.1rem;
 	}
 
 	.next {
