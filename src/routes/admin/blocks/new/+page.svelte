@@ -522,9 +522,8 @@
 		font-size: 0.9rem;
 	}
 
+	/* Planning happens on a desktop; on a phone a floating button would cover the fields */
 	.submit {
-		position: sticky;
-		bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 0.75rem);
 		display: flex;
 		justify-content: flex-end;
 	}
@@ -537,6 +536,7 @@
 
 	@media (min-width: 768px) {
 		.submit {
+			position: sticky;
 			bottom: 1rem;
 		}
 	}

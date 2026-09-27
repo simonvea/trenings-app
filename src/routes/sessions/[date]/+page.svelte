@@ -52,8 +52,13 @@
 			<span class="date">{formatDayHeading(params.date)}</span>
 			{#if session}
 				<span class="muted">
-					{translateCycleType(session.cycle_type)}
-					{session.cycle_number_in_block} · uke {session.week_number_in_cycle} · {session.weekName}
+					{#if session.cycle_type === '7th week'}
+						<!-- A 7th week is a single week, so its week number says nothing -->
+						7. uke · {session.weekName}
+					{:else}
+						{translateCycleType(session.cycle_type)}
+						{session.cycle_number_in_block} · uke {session.week_number_in_cycle} · {session.weekName}
+					{/if}
 				</span>
 			{/if}
 		</div>

@@ -290,7 +290,8 @@
 			<p class="error save-error" role="alert">{saveError}</p>
 		{:else}
 			<span class="progress num" class:all-done={allSetsDone}>
-				{mainLift.name}: {doneCount} av {totalCount} sett
+				<span class="bar-lift">{mainLift.name}:</span>
+				{doneCount} av {totalCount} sett
 			</span>
 		{/if}
 		<button
@@ -498,6 +499,18 @@
 	.submit-bar .btn {
 		min-height: 48px;
 		padding-inline: 1.5rem;
+		white-space: nowrap;
+	}
+
+	/* The lift is in the page heading; on narrow phones the bar needs the room */
+	@media (max-width: 359px) {
+		.bar-lift {
+			display: none;
+		}
+
+		.submit-bar .btn {
+			padding-inline: 1rem;
+		}
 	}
 
 	@media (min-width: 768px) {

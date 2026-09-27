@@ -31,11 +31,11 @@ export function translateDay(day: string): string {
 const cycleTypeTranslations: Record<string, string> = {
 	leader: 'Leder',
 	anchor: 'Anker',
-	'7th week': 'Mellomuke'
+	'7th week': '7. uke'
 };
 
 export function translateCycleType(cycleType: string) {
 	const c = cycleType.toLowerCase();
 	if (!(c in cycleTypeTranslations)) throw new Error('Unknown cycle type!');
-	return cycleTypeTranslations[c]! as 'Leder' | 'Anker' | 'Mellomuke';
+	return cycleTypeTranslations[c]! as 'Leder' | 'Anker' | '7. uke';
 }
