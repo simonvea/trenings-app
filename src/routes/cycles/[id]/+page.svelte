@@ -53,7 +53,12 @@
 
 {#each weeks as [weekNumber, sessions] (weekNumber)}
 	<section>
-		<h2 class="section-title">Uke {weekNumber}{sessions[0] ? ` · ${sessions[0].name}` : ''}</h2>
+		<h2 class="section-title">
+			<!-- A 7th week is a single week, so its number says nothing -->
+			{cycle.cycle_type === '7th week' ? '7. uke' : `Uke ${weekNumber}`}{sessions[0]
+				? ` · ${sessions[0].name}`
+				: ''}
+		</h2>
 		<div class="sessions">
 			{#each sessions as session (session.session_id)}
 				<a

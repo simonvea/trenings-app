@@ -92,7 +92,7 @@ describe('/+page.svelte', () => {
 						planned_date: addDays(today(), 1),
 						status: 'planned' as const,
 						liftName: 'Benkpress' as const,
-						weekName: 'TM Test',
+						weekName: 'TM-test',
 						isSeventhWeek: true,
 						topSet: { reps: 5, weight: 90, isAmrap: false }
 					}
