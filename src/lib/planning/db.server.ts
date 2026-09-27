@@ -185,3 +185,10 @@ function writeTrainingMaxes(trainingMaxes: TrainingMaxPlan[]): void {
 export function updateTrainingMaxes(trainingMaxes: TrainingMaxPlan[]): void {
 	transaction(() => writeTrainingMaxes(trainingMaxes));
 }
+
+export function lastBlockCreatedAt(): string | undefined {
+	const row = sql.get`SELECT MAX(created_at) AS created_at FROM training_blocks` as {
+		created_at: string | null;
+	};
+	return row.created_at ?? undefined;
+}

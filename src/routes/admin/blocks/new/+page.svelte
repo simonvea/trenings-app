@@ -98,7 +98,8 @@
 				const test = testFor(lift.id);
 				const source = defaultTrainingMaxSource(
 					{ trainingMax: lift.current_training_max, changedAt: lift.updated_at },
-					test && { createdAt: test.created_at }
+					test && { createdAt: test.created_at },
+					data.lastBlockCreatedAt
 				);
 				return [lift.id, source];
 			})

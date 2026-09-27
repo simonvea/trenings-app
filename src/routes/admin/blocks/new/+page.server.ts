@@ -5,6 +5,7 @@ import { overlappingBlock, planBlock } from '$lib/planning/schedule';
 import { formatShortDate } from '$lib/date';
 import {
 	createBlock,
+	lastBlockCreatedAt,
 	listBlocks,
 	loadPlanningOptions,
 	mainWeekTemplateIds
@@ -23,6 +24,7 @@ export const load: PageServerLoad = () => ({
 	...loadPlanningOptions(),
 	weekTemplateIds: mainWeekTemplateIds(),
 	latestTests: [...latestTrainingMaxTests().values()],
+	lastBlockCreatedAt: lastBlockCreatedAt(),
 	// Training maxes are shared, so a new choice also changes the weights of a running block
 	activeBlock: runningBlocks()[0]
 });

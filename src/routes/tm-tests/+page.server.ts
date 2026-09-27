@@ -2,6 +2,7 @@ import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { isIsoDate, today } from '$lib/date';
 import { translateLiftName } from '$lib/helpers';
+import { lastBlockCreatedAt } from '$lib/planning/db.server';
 import { sql } from '$lib/server/db';
 import {
 	addTrainingMaxTest,
@@ -14,6 +15,7 @@ import type { LiftsDb } from '$lib/types';
 
 export const load: PageServerLoad = () => {
 	const latest = latestTrainingMaxTests();
+	const blockCreatedAt = lastBlockCreatedAt();
 	const lifts = (
 		sql.all`SELECT id, name, current_training_max, updated_at FROM lifts ORDER BY id` as Pick<
 			LiftsDb,
@@ -29,7 +31,8 @@ export const load: PageServerLoad = () => {
 			tested:
 				defaultTrainingMaxSource(
 					{ trainingMax: lift.current_training_max, changedAt: lift.updated_at },
-					test && { createdAt: test.created_at }
+					test && { createdAt: test.created_at },
+					blockCreatedAt
 				) === 'test'
 		};
 	});

@@ -252,7 +252,7 @@ describe('trainingMaxCheck', () => {
 		});
 	});
 
-	describe('given a TM Test week set at 100 % with fewer reps than planned', () => {
+	describe('given a TM-test week set at 100 % with fewer reps than planned', () => {
 		it('when checking, then a lower training max is suggested', () => {
 			// Arrange
 			const session = {
@@ -354,6 +354,20 @@ describe('defaultTrainingMaxSource', () => {
 
 			// Act
 			const source = defaultTrainingMaxSource(changedLater, test);
+
+			// Assert
+			expect(source).toBe('current');
+		});
+	});
+
+	describe('given a test that was already offered when the last block was created', () => {
+		it('when choosing for the next block, then the current training max is used', () => {
+			// Arrange
+			const test = { createdAt: '2026-09-27 17:30:00' };
+			const lastBlockCreatedAt = '2026-09-28 20:00:00';
+
+			// Act
+			const source = defaultTrainingMaxSource(lift, test, lastBlockCreatedAt);
 
 			// Assert
 			expect(source).toBe('current');
