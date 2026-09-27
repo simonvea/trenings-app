@@ -156,7 +156,7 @@ describe('sessionEntry', () => {
 			expect(entry).toBe(bench);
 		});
 
-		it('when none is named after the lift, then the session belongs to the first one', () => {
+		it('when none is named after the lift, then the session belongs to none of them', () => {
 			// Arrange
 			const entries = [run, walk, squat];
 
@@ -164,7 +164,7 @@ describe('sessionEntry', () => {
 			const entry = sessionEntry(entries, 'Markløft');
 
 			// Assert
-			expect(entry).toBe(squat);
+			expect(entry).toBeUndefined();
 		});
 	});
 

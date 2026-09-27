@@ -49,9 +49,10 @@
 	method="POST"
 	use:enhance={() => {
 		saving = true;
-		errorsStale = false;
 		return async ({ update }) => {
 			await update({ reset: false });
+			// Only now does `form` hold errors for the rows just submitted
+			errorsStale = false;
 			saving = false;
 		};
 	}}

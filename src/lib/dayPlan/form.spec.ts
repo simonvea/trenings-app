@@ -61,10 +61,10 @@ describe('parseDayPlanForm', () => {
 		});
 	});
 
-	describe('given a row left completely blank', () => {
+	describe('given an added row left untouched, with only its start prefilled', () => {
 		it('when parsed, then the row is ignored', () => {
 			// Arrange
-			const rows = [row(), row({ start: '', end: '', kind: 'routine', label: '', note: '' })];
+			const rows = [row(), row({ start: '09:00', end: '', kind: 'routine', label: '', note: '' })];
 
 			// Act
 			const result = parse(rows);

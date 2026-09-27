@@ -31,8 +31,9 @@ const readRows = (data: FormData): DayPlanRow[] => {
 	}));
 };
 
-// A row added and left untouched; the kind select always has a value, so it doesn't count
-const isBlank = (row: DayPlanRow): boolean => !row.start && !row.end && !row.label && !row.note;
+// A row added and left untouched: its start is prefilled and the kind select always has a
+// value, so neither counts
+const isBlank = (row: DayPlanRow): boolean => !row.end && !row.label && !row.note;
 
 const rowError = (row: DayPlanRow): RowError | undefined => {
 	if (!isClockTime(row.start) || !isClockTime(row.end))

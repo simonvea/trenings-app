@@ -57,14 +57,15 @@ export function replaceDayPlan(weekday: Weekday, entries: DayPlanEntry[]): void 
 	});
 }
 
-// A week either side of today covers the current week whichever day it is
-export function sessionsAroundToday(): PlannedSession[] {
+// The page shows each weekday's next date, today to six days ahead, plus a day of slack either
+// side for a phone whose date differs from the server's
+export function upcomingSessions(): PlannedSession[] {
 	const rows = sql.all`SELECT s.planned_date, l.name AS lift_name
 		FROM workout_sessions AS s
 		INNER JOIN lifts AS l ON l.id = s.lift_id
 		INNER JOIN cycles AS c ON c.id = s.cycle_id
 		INNER JOIN training_blocks AS b ON b.id = c.block_id
-		WHERE s.planned_date BETWEEN date('now', 'localtime', '-7 day') AND date('now', 'localtime', '+7 day')
+		WHERE s.planned_date BETWEEN date('now', 'localtime', '-1 day') AND date('now', 'localtime', '+7 day')
 			AND b.completed_date IS NULL
 			AND s.status != 'skipped'
 		ORDER BY s.planned_date` as { planned_date: string; lift_name: string }[];

@@ -60,12 +60,14 @@ export const dayFocus = (entries: DayPlanEntry[]): string[] =>
 		.toSorted(byStart)
 		.map((e) => e.label);
 
-/** The training entry a logged session belongs to: the one named after the lift, else the first */
+/** The training entry named after the lift of a logged session, if any. A run is never it. */
 export const sessionEntry = (
 	entries: DayPlanEntry[],
 	liftName: string
 ): DayPlanEntry | undefined => {
-	const training = entries.filter((e) => e.kind === 'training').toSorted(byStart);
 	const lift = liftName.toLocaleLowerCase('nb');
-	return training.find((e) => e.label.toLocaleLowerCase('nb').includes(lift)) ?? training[0];
+	return entries
+		.filter((e) => e.kind === 'training')
+		.toSorted(byStart)
+		.find((e) => e.label.toLocaleLowerCase('nb').includes(lift));
 };
