@@ -19,6 +19,7 @@
 	);
 	const activeBlock = $derived(data.blocks.find((b) => !b.completed_date));
 	const finishedBlocks = $derived(data.blocks.filter((b) => b.completed_date));
+	const testingTime = $derived(!activeBlock || Boolean((todaySession ?? later[0])?.isSeventhWeek));
 
 	const percent = (done: number, total: number): number =>
 		total ? Math.round((done / total) * 100) : 0;
@@ -26,6 +27,21 @@
 
 {#snippet topSet(session: UpcomingSession)}
 	{session.topSet.reps}{session.topSet.isAmrap ? '+' : ''} × {formatKg(session.topSet.weight)}
+{/snippet}
+
+{#snippet trainingMaxLink()}
+	<section>
+		<h2 class="section-title">Training max</h2>
+		<a class="card link-row" href={resolve('/tm-tests')}>
+			<span class="what">
+				<strong>Test training max</strong>
+				<span class="muted">Registrer et tungt sett og få beregnet ny TM</span>
+			</span>
+			<svg viewBox="0 0 24 24" aria-hidden="true">
+				<path d="M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z" />
+			</svg>
+		</a>
+	</section>
 {/snippet}
 
 <h2 class="date">{formatDayHeading(todayDate)}</h2>
@@ -79,6 +95,11 @@
 	</section>
 {/snippet}
 
+<!-- Testing happens between blocks and in the 7th week, often on the gym floor -->
+{#if testingTime}
+	{@render trainingMaxLink()}
+{/if}
+
 {#if missed.length > 0}
 	{@render sessionList('Ikke gjennomført', missed)}
 {/if}
@@ -127,18 +148,9 @@
 	{/if}
 </section>
 
-<section>
-	<h2 class="section-title">Training max</h2>
-	<a class="card link-row" href={resolve('/tm-tests')}>
-		<span class="what">
-			<strong>Test training max</strong>
-			<span class="muted">Registrer et tungt sett og få beregnet ny TM</span>
-		</span>
-		<svg viewBox="0 0 24 24" aria-hidden="true">
-			<path d="M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z" />
-		</svg>
-	</a>
-</section>
+{#if !testingTime}
+	{@render trainingMaxLink()}
+{/if}
 
 <style>
 	.date {

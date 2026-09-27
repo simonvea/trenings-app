@@ -1,7 +1,7 @@
 import { page } from '@vitest/browser/context';
 import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import { formatDayHeading, today } from '$lib/date';
+import { addDays, formatDayHeading, today } from '$lib/date';
 import Page from './+page.svelte';
 
 const activeBlock = {
@@ -29,6 +29,7 @@ describe('/+page.svelte', () => {
 						status: 'planned' as const,
 						liftName: 'Knebøy' as const,
 						weekName: '5+',
+						isSeventhWeek: false,
 						topSet: { reps: 5, weight: 102.5, isAmrap: true }
 					}
 				]
@@ -58,6 +59,57 @@ describe('/+page.svelte', () => {
 
 			// Assert
 			await expect.element(page.getByText('Hviledag')).toBeInTheDocument();
+		});
+	});
+
+	describe('given no active block', () => {
+		it('when rendered, then testing the training max is offered before the block list', async () => {
+			// Arrange
+			const data = { blocks: [], upcoming: [] };
+
+			// Act
+			render(Page, { data, params: {}, form: undefined });
+
+			// Assert
+			const testLink = page.getByRole('link', { name: /Test training max/ });
+			await expect.element(testLink).toHaveAttribute('href', '/tm-tests');
+			const blocksHeading = page.getByRole('heading', { name: 'Blokker' });
+			expect(
+				testLink.element().compareDocumentPosition(blocksHeading.element()) &
+					Node.DOCUMENT_POSITION_FOLLOWING
+			).toBeTruthy();
+		});
+	});
+
+	describe('given an active block whose next session is in the 7th week', () => {
+		it('when rendered, then testing the training max is offered before the upcoming sessions', async () => {
+			// Arrange
+			const data = {
+				blocks: [activeBlock],
+				upcoming: [
+					{
+						id: 9,
+						planned_date: addDays(today(), 1),
+						status: 'planned' as const,
+						liftName: 'Benkpress' as const,
+						weekName: 'TM Test',
+						isSeventhWeek: true,
+						topSet: { reps: 5, weight: 90, isAmrap: false }
+					}
+				]
+			};
+
+			// Act
+			render(Page, { data, params: {}, form: undefined });
+
+			// Assert
+			const testLink = page.getByRole('link', { name: /Test training max/ });
+			const upcomingHeading = page.getByRole('heading', { name: 'Kommende økter' });
+			await expect.element(testLink).toBeInTheDocument();
+			expect(
+				testLink.element().compareDocumentPosition(upcomingHeading.element()) &
+					Node.DOCUMENT_POSITION_FOLLOWING
+			).toBeTruthy();
 		});
 	});
 });

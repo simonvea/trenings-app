@@ -8,12 +8,14 @@ import type { LiftName, WorkoutSessionsDb } from '$lib/types';
 export type UpcomingSession = Pick<WorkoutSessionsDb, 'id' | 'planned_date' | 'status'> & {
 	liftName: LiftName;
 	weekName: string;
+	isSeventhWeek: boolean;
 	topSet: { reps: number; weight: number; isAmrap: boolean };
 };
 
 type UpcomingSessionRow = Pick<WorkoutSessionsDb, 'id' | 'planned_date' | 'status'> & {
 	lift_name: string;
 	week_name: string;
+	cycle_type: string;
 	current_training_max: number;
 	set_3_percentage: number;
 	set_3_reps: number;
@@ -25,7 +27,7 @@ export const load: PageServerLoad = async () => {
 	// A week back, so missed sessions can still be reached. The server clock may be UTC,
 	// so the client decides which of these are past, today and upcoming.
 	const rows = sql.all`SELECT s.id, s.planned_date, s.status, l.name AS lift_name,
-		l.current_training_max, w.name AS week_name, w.set_3_percentage, w.set_3_reps,
+		l.current_training_max, w.name AS week_name, c.cycle_type, w.set_3_percentage, w.set_3_reps,
 		w.set_4_percentage, w.set_4_reps
 	FROM workout_sessions AS s
 	INNER JOIN lifts AS l ON l.id = s.lift_id
@@ -48,6 +50,7 @@ export const load: PageServerLoad = async () => {
 			status: row.status,
 			liftName: translateLiftName(row.lift_name),
 			weekName: row.week_name,
+			isSeventhWeek: row.cycle_type === '7th week',
 			topSet: {
 				reps: Math.abs(reps),
 				weight: normalizeWeight(row.current_training_max * percentage),

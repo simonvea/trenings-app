@@ -24,7 +24,11 @@
 </svelte:head>
 
 {#snippet navLinks(withIcons: boolean)}
-	<a href={resolve('/')} aria-current={current(page.url.pathname === '/')}>
+	<!-- The TM test is opened from Home, so Home stays marked there -->
+	<a
+		href={resolve('/')}
+		aria-current={current(page.url.pathname === '/' || page.url.pathname.startsWith('/tm-tests'))}
+	>
 		{#if withIcons}
 			<svg viewBox="0 0 24 24" aria-hidden="true">
 				<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />
