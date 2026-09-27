@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { addDays, formatDayHeading, today } from '$lib/date';
 	import {
@@ -29,7 +30,10 @@
 
 	onMount(() => {
 		const tick = (): void => {
-			todayDate = today();
+			const date = today();
+			// Sessions are loaded for a window around the day the page was loaded
+			if (date !== todayDate) invalidateAll();
+			todayDate = date;
 			now = minutesOfDay(new Date());
 		};
 		tick();

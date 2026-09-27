@@ -49,8 +49,8 @@ template, add a new migration that inserts into `program_templates`,
 
 **Dag** (`/day`) shows how today is meant to run, from waking up to the evening walk: a card
 with what should happen now, how long is left and what comes next, then the whole day as a
-list. The weekday buttons show each day's next date, so **Man** on a Sunday evening is
-tomorrow. A training entry named after the lift of a planned session (e.g. "Knebøy") links to
+list. Each weekday button shows that day's training and opens its next date, so **Man** on
+a Sunday evening is tomorrow. A training entry named after the lift of a planned session (e.g. "Knebøy") links to
 it.
 
 The plan is one weekly template, the same every week, edited per weekday with **Rediger**. It
