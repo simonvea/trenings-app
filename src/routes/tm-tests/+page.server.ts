@@ -6,22 +6,33 @@ import { sql } from '$lib/server/db';
 import {
 	addTrainingMaxTest,
 	deleteTrainingMaxTest,
+	latestTrainingMaxTests,
 	listTrainingMaxTests
 } from '$lib/server/trainingMaxTests';
-import { parseTestSet } from '$lib/trainingMax';
+import { defaultTrainingMaxSource, parseTestSet } from '$lib/trainingMax';
 import type { LiftsDb } from '$lib/types';
 
 export const load: PageServerLoad = () => {
+	const latest = latestTrainingMaxTests();
 	const lifts = (
-		sql.all`SELECT id, name, current_training_max FROM lifts ORDER BY id` as Pick<
+		sql.all`SELECT id, name, current_training_max, updated_at FROM lifts ORDER BY id` as Pick<
 			LiftsDb,
-			'id' | 'name' | 'current_training_max'
+			'id' | 'name' | 'current_training_max' | 'updated_at'
 		>[]
-	).map((lift) => ({
-		id: lift.id,
-		name: translateLiftName(lift.name),
-		trainingMax: lift.current_training_max
-	}));
+	).map((lift) => {
+		const test = latest.get(lift.id);
+		return {
+			id: lift.id,
+			name: translateLiftName(lift.name),
+			trainingMax: lift.current_training_max,
+			// Tested since the training max was last set, i.e. the test would be picked for a new block
+			tested:
+				defaultTrainingMaxSource(
+					{ trainingMax: lift.current_training_max, changedAt: lift.updated_at },
+					test && { createdAt: test.created_at }
+				) === 'test'
+		};
+	});
 	const liftName = new Map(lifts.map((lift) => [lift.id, lift.name]));
 
 	return {

@@ -9,11 +9,18 @@
 
 	const { data, form }: PageProps = $props();
 
-	// Links from a session preselect its lift with ?lift=<id>; the lifts never change while
-	// the page is open, so this only runs once
+	// Lifts are tested a couple at a time over a week, so start on one that still needs it.
+	// A link can ask for a lift with ?lift=<id>.
+	// Lifts without a training max (like rows kept as a spare) come last
+	const nextLiftId = (): number | undefined =>
+		(
+			data.lifts.find((l) => !l.tested && l.trainingMax > 0) ??
+			data.lifts.find((l) => !l.tested) ??
+			data.lifts[0]
+		)?.id;
 	const initialLiftId = (): number | undefined => {
 		const requested = Number(page.url.searchParams.get('lift'));
-		return data.lifts.find((l) => l.id === requested)?.id ?? data.lifts[0]?.id;
+		return data.lifts.find((l) => l.id === requested)?.id ?? nextLiftId();
 	};
 	let liftId = $state(untrack(initialLiftId));
 	let lastSaved = $state<string>();
@@ -42,11 +49,6 @@
 </script>
 
 <div class="page">
-	<p class="intro muted">
-		Ta ett tungt sett med 3–5 gode reps. Training max blir 90 % av estimert 1RM. Du velger om den
-		skal brukes når du lager neste blokk.
-	</p>
-
 	<form
 		class="card test"
 		method="POST"
@@ -69,6 +71,7 @@
 					lastSaved = summary;
 					weight = '';
 					reps = '';
+					liftId = nextLiftId() ?? liftId;
 				}
 			};
 		}}
@@ -78,7 +81,12 @@
 			{#each data.lifts as option (option.id)}
 				<label class="lift-option">
 					<input type="radio" name="lift_id" value={option.id} bind:group={liftId} />
-					<span>{option.name}</span>
+					<span>
+						{option.name}
+						{#if option.tested}<span class="tested" aria-hidden="true">✓</span><span
+								class="visually-hidden">testet</span
+							>{/if}
+					</span>
 				</label>
 			{/each}
 		</fieldset>
@@ -91,6 +99,7 @@
 						class="num"
 						name="weight"
 						inputmode="decimal"
+						enterkeyhint="next"
 						autocomplete="off"
 						placeholder="0"
 						bind:value={weight}
@@ -106,6 +115,7 @@
 					name="reps"
 					inputmode="numeric"
 					pattern="[0-9]*"
+					enterkeyhint="done"
 					autocomplete="off"
 					placeholder="0"
 					bind:value={reps}
@@ -144,6 +154,10 @@
 		{:else if form?.saved && !weight && !reps}
 			<p class="ok" role="status">Lagret{lastSaved ? `: ${lastSaved}` : '.'}</p>
 		{/if}
+		<p class="hint muted">
+			Ett tungt sett med 3–5 gode reps. Training max blir 90 % av estimert 1RM, og du velger om den
+			skal brukes når du lager neste blokk.
+		</p>
 	</form>
 
 	<section>
@@ -220,10 +234,6 @@
 		margin: 0 auto;
 	}
 
-	.intro {
-		margin: 0 0.25rem 1rem;
-	}
-
 	.test {
 		display: flex;
 		flex-direction: column;
@@ -253,15 +263,25 @@
 		opacity: 0;
 	}
 
-	.lift-option span {
+	.lift-option > span {
 		display: inline-flex;
 		align-items: center;
-		min-height: var(--tap);
-		padding: 0 1rem;
+		gap: 0.3rem;
+		min-height: 44px;
+		padding: 0 0.85rem;
 		border: 1px solid var(--border-strong);
 		border-radius: 999px;
 		font-weight: 600;
 		cursor: pointer;
+	}
+
+	.tested {
+		color: var(--success);
+		font-weight: 800;
+	}
+
+	.lift-option input:checked + span .tested {
+		color: inherit;
 	}
 
 	.lift-option input:checked + span {
@@ -323,6 +343,10 @@
 	.tm strong {
 		font-size: 1.8rem;
 		font-weight: 800;
+	}
+
+	.hint {
+		font-size: 0.9rem;
 	}
 
 	.save {
