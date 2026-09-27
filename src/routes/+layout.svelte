@@ -47,6 +47,19 @@
 		{/if}
 		<span>Økt</span>
 	</a>
+	<a
+		href={resolve('/day/[[weekday=weekday]]', {})}
+		aria-current={current(page.url.pathname.startsWith('/day'))}
+	>
+		{#if withIcons}
+			<svg viewBox="0 0 24 24" aria-hidden="true">
+				<path
+					d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16m-1 3v5.4l4.3 2.6 1-1.7-3.3-2V7z"
+				/>
+			</svg>
+		{/if}
+		<span>Dag</span>
+	</a>
 	<a href={resolve('/admin')} aria-current={current(page.url.pathname.startsWith('/admin'))}>
 		{#if withIcons}
 			<svg viewBox="0 0 24 24" aria-hidden="true">
@@ -141,7 +154,7 @@
 		inset: auto 0 0 0;
 		z-index: 10;
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
+		grid-template-columns: repeat(4, 1fr);
 		height: calc(var(--tabbar-height) + env(safe-area-inset-bottom));
 		padding-bottom: env(safe-area-inset-bottom);
 		background: var(--surface);
