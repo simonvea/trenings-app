@@ -39,7 +39,7 @@
 </header>
 
 <section>
-	<h2>Treningsdager</h2>
+	<h2 class="section-title">Treningsdager</h2>
 	<ul class="days">
 		{#each trainingDays as { day, liftId } (day)}
 			<li class="card">
@@ -51,7 +51,7 @@
 </section>
 
 <section>
-	<h2>Sykluser</h2>
+	<h2 class="section-title">Sykluser</h2>
 	<ol class="card cycles">
 		{#each data.cycles as cycle (cycle.id)}
 			<li>
@@ -99,15 +99,6 @@
 
 	section {
 		margin-top: 1.5rem;
-	}
-
-	h2 {
-		margin: 0 0.25rem 0.5rem;
-		font-size: 0.8rem;
-		font-weight: 700;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--text-muted);
 	}
 
 	.days {

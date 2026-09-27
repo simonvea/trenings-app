@@ -50,7 +50,7 @@
 
 {#if later.length > 0}
 	<section>
-		<h2>Kommende økter</h2>
+		<h2 class="section-title">Kommende økter</h2>
 		<ul class="card list">
 			{#each later as session (session.id)}
 				<li>
@@ -74,7 +74,7 @@
 {/if}
 
 <section>
-	<h2>Blokker</h2>
+	<h2 class="section-title">Blokker</h2>
 	{#if activeBlock}
 		<a class="card block" href={resolve('/blocks/[id]', { id: String(activeBlock.id) })}>
 			<span class="block-name">{activeBlock.name}</span>
@@ -130,8 +130,7 @@
 		text-decoration: none;
 	}
 
-	.eyebrow,
-	h2 {
+	.eyebrow {
 		font-size: 0.8rem;
 		font-weight: 700;
 		letter-spacing: 0.06em;
@@ -162,10 +161,6 @@
 
 	section {
 		margin-top: 1.75rem;
-	}
-
-	h2 {
-		margin: 0 0.25rem 0.5rem;
 	}
 
 	.list {
