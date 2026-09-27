@@ -20,7 +20,7 @@
 			navigator.wakeLock
 				?.request('screen')
 				.then((l) => (lock = l))
-				.catch((e: Error) => console.error('unable to lock screen', e.message));
+				.catch((e: Error) => console.debug('Screen wake lock refused', e.message));
 		};
 		// The browser drops the lock whenever the app is backgrounded, e.g. to change music
 		const onVisible = (): void => {

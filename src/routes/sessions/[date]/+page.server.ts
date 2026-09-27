@@ -3,7 +3,7 @@ import { isIsoDate } from '$lib/date';
 import { parseDecimal, parseWholeNumber } from '$lib/format';
 import { updateTrainingMaxes } from '$lib/planning/db.server';
 import { supplementalWeight } from '$lib/supplemental';
-import { lowerTrainingMax, trainingMaxCheck, type TrainingMaxCheck } from '$lib/trainingMax';
+import { trainingMaxCheck, type TrainingMaxCheck } from '$lib/trainingMax';
 import type {
 	AssistanceExerciseDb,
 	AssistanceWorkDb,
@@ -106,21 +106,24 @@ export const actions = {
 		return { success: true };
 	},
 
-	lowerTrainingMax: async ({ request }) => {
+	// Lowering after a heavy top set, and undoing that
+	changeTrainingMax: async ({ request }) => {
 		const data = await request.formData();
 		const liftId = Number(data.get('lift_id'));
 		const from = Number(data.get('from'));
+		const to = Number(data.get('to'));
+		if (!(to > 0 && to <= 500)) return fail(400, { tmError: 'Ugyldig training max' });
 
 		const lift = sql.get`SELECT current_training_max FROM lifts WHERE id = ${liftId}` as
 			| Pick<LiftsDb, 'current_training_max'>
 			| undefined;
 		if (!lift) return fail(400, { tmError: 'Fant ikke løftet' });
-		// A double tap or a resent form must not lower it twice
+		// A double tap or a resent form must not change it twice
 		if (lift.current_training_max !== from)
 			return fail(409, { tmError: 'Training max er allerede endret' });
 
-		updateTrainingMaxes([{ liftId, trainingMax: lowerTrainingMax(from) }]);
-		return { tmLowered: true };
+		updateTrainingMaxes([{ liftId, trainingMax: to }]);
+		return { tmChanged: true };
 	}
 } satisfies Actions;
 

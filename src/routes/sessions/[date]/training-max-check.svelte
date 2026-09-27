@@ -12,6 +12,8 @@
 
 	let saving = $state(false);
 	let failed = $state('');
+	// Shown after lowering, with a way back for a mis-tap on the gym floor
+	let lowered = $state<{ from: number; to: number }>();
 
 	// "It went fine" is remembered on this phone so the question is not asked on every visit
 	// The page keys this component on the session
@@ -28,10 +30,10 @@
 	}
 </script>
 
-{#snippet lowerForm(lowered: number, label: string, secondary: boolean)}
+{#snippet changeForm(from: number, to: number, label: string, secondary: boolean)}
 	<form
 		method="POST"
-		action="?/lowerTrainingMax"
+		action="?/changeTrainingMax"
 		use:enhance={() => {
 			saving = true;
 			failed = '';
@@ -42,9 +44,11 @@
 						failed = 'Ikke lagret – sjekk nettet og prøv igjen.';
 					} else if (result.type === 'failure') {
 						failed = String(result.data?.tmError ?? 'Ikke lagret');
-						// Already changed elsewhere; show the current training max
+						// Already changed elsewhere; drop the stale card and show the current training max
+						lowered = undefined;
 						await invalidateAll();
 					} else {
+						lowered = to < from ? { from, to } : undefined;
 						await update();
 					}
 				} finally {
@@ -54,25 +58,41 @@
 		}}
 	>
 		<input type="hidden" name="lift_id" value={liftId} />
-		<input type="hidden" name="from" value={trainingMax} />
+		<input type="hidden" name="from" value={from} />
+		<input type="hidden" name="to" value={to} />
 		<button class="btn" class:btn-secondary={secondary} type="submit" disabled={saving}>
 			{label}
-			{formatKg(lowered)}
 		</button>
 	</form>
-	{#if failed}
-		<p class="error" role="alert">{failed}</p>
-	{/if}
 {/snippet}
 
-{#if check.kind === 'missedReps'}
+{#if lowered}
+	<section class="card check">
+		<!-- The tapped button is gone, so focus moves here and the result is read out -->
+		<h3 tabindex="-1" {@attach (el) => el.focus()}>
+			Training max er senket til {formatKg(lowered.to)}
+		</h3>
+		<p>Gjelder resten av blokka. Tidligere økter beholder vektene sine.</p>
+		{@render changeForm(
+			lowered.to,
+			lowered.from,
+			`Angre, tilbake til ${formatKg(lowered.from)}`,
+			true
+		)}
+	</section>
+{:else if check.kind === 'missedReps'}
 	<section class="card check warning">
 		<h3>Training max er trolig for høy</h3>
 		<p>
 			Toppsettet ble {formatReps(check.actualReps)}, under kravet på {check.minimumReps}. Wendler
 			anbefaler å senke training max med 10 % ({formatKg(trainingMax)} → {formatKg(check.lowered)}).
 		</p>
-		{@render lowerForm(check.lowered, 'Senk TM til', false)}
+		{@render changeForm(
+			trainingMax,
+			check.lowered,
+			`Senk TM til ${formatKg(check.lowered)}`,
+			false
+		)}
 	</section>
 {:else if check.kind === 'askIfHeavy' && answeredFine === false}
 	<section class="card check">
@@ -81,9 +101,18 @@
 			Toppsettet i 7. uke skal gå greit. Klarte du ikke alle reps, eller var det en kamp, er
 			training max for høy og bør senkes 10 %.
 		</p>
-		{@render lowerForm(check.lowered, 'Ja, senk TM til', true)}
+		{@render changeForm(
+			trainingMax,
+			check.lowered,
+			`Ja, senk TM til ${formatKg(check.lowered)}`,
+			true
+		)}
 		<button class="btn btn-secondary" type="button" onclick={wentFine}>Nei, det gikk greit</button>
 	</section>
+{/if}
+
+{#if failed}
+	<p class="error" role="alert">{failed}</p>
 {/if}
 
 <style>
