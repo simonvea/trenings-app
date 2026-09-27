@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { addDays, today } from '$lib/date';
 import { translateLiftName } from '$lib/helpers';
 import { weekdays, type Weekday } from '$lib/planning/types';
 import { sql, transaction } from '$lib/server/db';
@@ -58,14 +59,17 @@ export function replaceDayPlan(weekday: Weekday, entries: DayPlanEntry[]): void 
 }
 
 // The page shows each weekday's next date, today to six days ahead, plus a day of slack either
-// side for a phone whose date differs from the server's
+// side for a phone whose date differs from the server's. Bounds come from Node's clock, which
+// follows TZ; SQLite's 'localtime' can't be trusted to in a container without tzdata.
 export function upcomingSessions(): PlannedSession[] {
+	const from = addDays(today(), -1);
+	const to = addDays(today(), 7);
 	const rows = sql.all`SELECT s.planned_date, l.name AS lift_name
 		FROM workout_sessions AS s
 		INNER JOIN lifts AS l ON l.id = s.lift_id
 		INNER JOIN cycles AS c ON c.id = s.cycle_id
 		INNER JOIN training_blocks AS b ON b.id = c.block_id
-		WHERE s.planned_date BETWEEN date('now', 'localtime', '-1 day') AND date('now', 'localtime', '+7 day')
+		WHERE s.planned_date BETWEEN ${from} AND ${to}
 			AND b.completed_date IS NULL
 			AND s.status != 'skipped'
 		ORDER BY s.planned_date` as { planned_date: string; lift_name: string }[];

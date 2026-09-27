@@ -60,7 +60,7 @@ export const dayFocus = (entries: DayPlanEntry[]): string[] =>
 		.toSorted(byStart)
 		.map((e) => e.label);
 
-/** The training entry named after the lift of a logged session, if any. A run is never it. */
+/** The entry a logged session belongs to: only training entries count, matched by the lift name in their label */
 export const sessionEntry = (
 	entries: DayPlanEntry[],
 	liftName: string

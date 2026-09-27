@@ -5,6 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 - `npx vitest run --project server` - Run only server-side (node) tests, e.g. `src/lib/planning/*.spec.ts`
+- `npx vitest run --project client --browser.headless` - Browser tests without a display
+  (the default launches a visible Chromium and fails without `$DISPLAY`)
 
 Requires Node 24 (`.nvmrc`); `node:sqlite` `createTagStore` is missing in Node 22.
 `DB_URL` in `.env` points at the SQLite file; it is created and migrated on startup.
@@ -48,15 +50,19 @@ The app uses SQLite with a comprehensive schema for tracking 5/3/1 powerlifting 
 - `src/lib/types.ts` - TypeScript definitions for database entities
 - `src/routes/admin/` - Desktop admin: training maxes, blocks, new block from a program template
 - `src/routes/tm-tests/` - Phone page for logging TM tests
-- `src/lib/dayPlan/` - Day plan: `status.ts` (pure "now / next" for a time of day), `form.ts`
-  (edit form parsing/validation), `db.server.ts`. Pages in `src/routes/day/`: `/day` is today,
-  `/day/[weekday]` a chosen day (its next date), `/day/[weekday]/edit` edits that weekday
+- `src/lib/dayPlan/` - Day plan: `time.ts` (clock times, a weekday's next date), `status.ts`
+  (pure "now / next" for a time of day, which entry a session belongs to), `form.ts` (edit form
+  parsing/validation), `db.server.ts`. Pages in `src/routes/day/` use the `weekday` param
+  matcher (`src/params/weekday.ts`): `/day` is today, `/day/[weekday]` that weekday's next
+  date, `/day/[weekday]/edit` edits the weekday
 - `src/routes/sessions/[date]/` - Phone session logging; `training-max-check.svelte` is the
   post-session "lower TM" card
 
-Dates are local calendar days (`src/lib/date.ts`). The server runs Europe/Oslo time, but dates
-that matter to the user (session completion, test date, today's day plan) are still decided on
-the phone, so a PWA left open overnight stays right.
+Dates are local calendar days (`src/lib/date.ts`). The server runs with `TZ=Europe/Oslo`, which
+Node follows; SQLite's `date('now', 'localtime')` may not in the Alpine image (no tzdata), so
+compute date bounds in JS and pass them in. Dates that matter to the user (session completion,
+test date, today's day plan) are still decided on the phone, so a PWA left open overnight stays
+right.
 
 ### Planning workflow
 

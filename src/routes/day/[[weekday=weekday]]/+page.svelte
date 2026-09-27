@@ -2,7 +2,13 @@
 	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { addDays, formatDayHeading, today } from '$lib/date';
-	import { dayFocus, dayStatus, entryPhase, sessionEntry } from '$lib/dayPlan/status';
+	import {
+		dayFocus,
+		dayStatus,
+		entryPhase,
+		sessionEntry,
+		type EntryPhase
+	} from '$lib/dayPlan/status';
 	import {
 		formatDuration,
 		minutesOfDay,
@@ -56,7 +62,7 @@
 	const shortDay = (day: string): string => translateDay(day).slice(0, 3);
 	const duration = (e: DayPlanEntry): string =>
 		formatDuration(toMinutes(e.end) - toMinutes(e.start));
-	const phase = (e: DayPlanEntry) => (isToday ? entryPhase(e, now) : 'upcoming');
+	const phase = (e: DayPlanEntry): EntryPhase => (isToday ? entryPhase(e, now) : 'upcoming');
 </script>
 
 <nav class="days" aria-label="Ukedager">

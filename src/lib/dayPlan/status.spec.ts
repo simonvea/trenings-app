@@ -168,6 +168,37 @@ describe('sessionEntry', () => {
 		});
 	});
 
+	describe('given a training entry named in lower case', () => {
+		it('when the lift is looked up, then the name still matches', () => {
+			// Arrange
+			const heavySquat: DayPlanEntry = { ...squat, label: 'knebøy tung' };
+
+			// Act
+			const entry = sessionEntry([walk, heavySquat], 'Knebøy');
+
+			// Assert
+			expect(entry).toBe(heavySquat);
+		});
+	});
+
+	describe('given only a non-training entry that mentions the lift', () => {
+		it('when the session is placed, then it belongs to none of them', () => {
+			// Arrange
+			const coffee: DayPlanEntry = {
+				start: '12:00',
+				end: '12:30',
+				kind: 'social',
+				label: 'Kaffe etter knebøy'
+			};
+
+			// Act
+			const entry = sessionEntry([coffee, work], 'Knebøy');
+
+			// Assert
+			expect(entry).toBeUndefined();
+		});
+	});
+
 	describe('given no training entries', () => {
 		it('when the session is placed, then it belongs to none of them', () => {
 			// Arrange, Act

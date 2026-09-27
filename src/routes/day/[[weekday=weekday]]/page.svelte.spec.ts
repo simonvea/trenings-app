@@ -48,7 +48,7 @@ describe('/day/+page.svelte', () => {
 			await expect.element(now.getByText(/Neste:/)).toHaveTextContent('Jobb på kontoret');
 		});
 
-		it('when a squat session is planned that day, then the squat entry links to it', async () => {
+		it('when a squat session is planned that day, then the now card and the squat entry link to it', async () => {
 			// Arrange
 			const data = {
 				title: 'Dagsplan',
@@ -60,9 +60,33 @@ describe('/day/+page.svelte', () => {
 			render(Page, { data, params: {}, form: undefined });
 
 			// Assert
+			const now = page.getByRole('region', { name: /Nå/ });
+			await expect
+				.element(now.getByRole('link', { name: 'Åpne økt' }))
+				.toHaveAttribute('href', '/sessions/2026-09-28');
 			await expect
 				.element(page.getByRole('link', { name: 'Åpne økt · Knebøy' }))
 				.toHaveAttribute('href', '/sessions/2026-09-28');
+			await expect.element(page.getByText(/Planlagt økt/)).not.toBeInTheDocument();
+		});
+
+		it('when a deadlift session is planned that day, then it gets its own card instead of an entry link', async () => {
+			// Arrange
+			const data = {
+				title: 'Dagsplan',
+				plan,
+				sessions: [{ date: '2026-09-28', liftName: 'Markløft' as const }]
+			};
+
+			// Act
+			render(Page, { data, params: {}, form: undefined });
+
+			// Assert
+			await expect
+				.element(page.getByRole('link', { name: /Planlagt økt: Markløft/ }))
+				.toHaveAttribute('href', '/sessions/2026-09-28');
+			const now = page.getByRole('region', { name: /Nå/ });
+			await expect.element(now.getByRole('link', { name: 'Åpne økt' })).not.toBeInTheDocument();
 		});
 	});
 
