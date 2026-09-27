@@ -1,4 +1,4 @@
-import type { Days, MainLifts } from './types';
+import type { MainLifts } from './types';
 
 const liftTranslations: Record<string, MainLifts> = {
 	Squat: 'Knebøy',
@@ -13,13 +13,16 @@ export function translateLiftName(lift: string): MainLifts {
 }
 
 const days = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
-const dayTranslations: Record<string, Days> = {
+const dayTranslations: Record<string, string> = {
 	monday: 'Mandag',
 	tuesday: 'Tirsdag',
+	wednesday: 'Onsdag',
 	thursday: 'Torsdag',
-	friday: 'Fredag'
+	friday: 'Fredag',
+	saturday: 'Lørdag',
+	sunday: 'Søndag'
 };
-export function translateDay(day: string) {
+export function translateDay(day: string): string {
 	const d = day.toLowerCase();
 	if (!(d in dayTranslations)) throw new Error('Unknown day!');
 	return dayTranslations[d];

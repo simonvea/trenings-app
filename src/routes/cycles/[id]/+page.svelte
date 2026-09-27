@@ -7,7 +7,7 @@
 	const { data } = $props();
 
 	const { cycle, sessions, lifts } = data;
-	const hasSupplemental = !!cycle.supplemental_template_id;
+	const hasSupplemental = !!cycle.supplemental_template_id && cycle.sets > 0;
 
 	// Group sessions by week
 	const sessionsPerWeek = sessions.reduce((prev, curr) => {

@@ -37,6 +37,7 @@
 		<nav class="nav">
 			<a href="/" onclick={closeMenu}>Hjem</a>
 			<a href={'/sessions/' + today} onclick={closeMenu}>Dagens økt</a>
+			<a href="/admin" onclick={closeMenu}>Admin</a>
 		</nav>
 	</aside>
 
