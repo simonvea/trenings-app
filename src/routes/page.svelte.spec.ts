@@ -112,4 +112,53 @@ describe('/+page.svelte', () => {
 			).toBeTruthy();
 		});
 	});
+
+	describe('given an active block that ended yesterday but is not marked complete', () => {
+		it('when rendered, then testing the training max is offered before the block list', async () => {
+			// Arrange
+			const data = {
+				blocks: [{ ...activeBlock, end_date: addDays(today(), -1) }],
+				upcoming: []
+			};
+
+			// Act
+			render(Page, { data, params: {}, form: undefined });
+
+			// Assert
+			const testLink = page.getByRole('link', { name: /Test training max/ });
+			const blocksHeading = page.getByRole('heading', { name: 'Blokker' });
+			await expect.element(testLink).toBeInTheDocument();
+			expect(
+				testLink.element().compareDocumentPosition(blocksHeading.element()) &
+					Node.DOCUMENT_POSITION_FOLLOWING
+			).toBeTruthy();
+		});
+	});
+
+	describe('given a rest day and a later session that is already completed', () => {
+		it('when rendered, then "Neste" points at the next planned session', async () => {
+			// Arrange
+			const todayDate = today();
+			const session = {
+				planned_date: addDays(todayDate, 1),
+				liftName: 'Knebøy' as const,
+				weekName: '5+',
+				isSeventhWeek: false,
+				topSet: { reps: 5, weight: 100, isAmrap: true }
+			};
+			const data = {
+				blocks: [activeBlock],
+				upcoming: [
+					{ ...session, id: 1, status: 'completed' as const, liftName: 'Benkpress' as const },
+					{ ...session, id: 2, status: 'planned' as const, planned_date: addDays(todayDate, 2) }
+				]
+			};
+
+			// Act
+			render(Page, { data, params: {}, form: undefined });
+
+			// Assert
+			await expect.element(page.getByText(/Neste: Knebøy/)).toBeInTheDocument();
+		});
+	});
 });

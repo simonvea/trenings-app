@@ -19,7 +19,12 @@
 	);
 	const activeBlock = $derived(data.blocks.find((b) => !b.completed_date));
 	const finishedBlocks = $derived(data.blocks.filter((b) => b.completed_date));
-	const testingTime = $derived(!activeBlock || Boolean((todaySession ?? later[0])?.isSeventhWeek));
+	const nextPlanned = $derived(later.find((s) => s.status === 'planned'));
+	// A block can end days before it is marked complete on the desktop
+	const blockOver = $derived(
+		!activeBlock || (activeBlock.end_date !== null && activeBlock.end_date < todayDate)
+	);
+	const testingTime = $derived(blockOver || Boolean((todaySession ?? nextPlanned)?.isSeventhWeek));
 
 	const percent = (done: number, total: number): number =>
 		total ? Math.round((done / total) * 100) : 0;
@@ -59,9 +64,9 @@
 	{:else}
 		<span class="eyebrow">I dag</span>
 		<span class="lift">Hviledag</span>
-		{#if later[0]}
+		{#if nextPlanned}
 			<span class="muted">
-				Neste: {later[0].liftName}, {formatDayHeading(later[0].planned_date).toLowerCase()}
+				Neste: {nextPlanned.liftName}, {formatDayHeading(nextPlanned.planned_date).toLowerCase()}
 			</span>
 		{/if}
 	{/if}
