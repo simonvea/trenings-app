@@ -177,6 +177,9 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 			});
 	}
 
+	// A completed session keeps the weights it was done with, even after the training max changes
+	const trainingMax = history?.mainWork.at(-1)?.training_max ?? session.current_training_max;
+
 	const supplemental: SupplementalWork = {
 		sets: session.sets ?? 0,
 		reps: session.reps ?? 0,
@@ -184,7 +187,7 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 		weight: supplementalWeight(
 			{ weightCalculation: session.weight_calculation, fixedPercentage: session.fixed_percentage },
 			{
-				trainingMax: session.current_training_max,
+				trainingMax,
 				set1Percentage: session.set_1_percentage,
 				set2Percentage: session.set_2_percentage
 			}
@@ -197,24 +200,24 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 		sets: [
 			{
 				reps: session.set_1_reps,
-				weight: normalizeWeight(session.current_training_max * session.set_1_percentage),
+				weight: normalizeWeight(trainingMax * session.set_1_percentage),
 				isAmrap: false
 			},
 			{
 				reps: session.set_2_reps,
-				weight: normalizeWeight(session.current_training_max * session.set_2_percentage),
+				weight: normalizeWeight(trainingMax * session.set_2_percentage),
 				isAmrap: false
 			},
 			{
 				reps: Math.abs(session.set_3_reps),
-				weight: normalizeWeight(session.current_training_max * session.set_3_percentage),
+				weight: normalizeWeight(trainingMax * session.set_3_percentage),
 				isAmrap: session.set_3_reps < 0
 			},
 			...(session.set_4_reps && session.set_4_percentage
 				? [
 						{
 							reps: Math.abs(session.set_4_reps),
-							weight: normalizeWeight(session.current_training_max * session.set_4_percentage),
+							weight: normalizeWeight(trainingMax * session.set_4_percentage),
 							isAmrap: session.set_4_reps < 0
 						}
 					]
@@ -228,17 +231,17 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 			...[
 				{
 					reps: session.warmup_set_1_reps,
-					weight: normalizeWeight(session.current_training_max * session.warmup_set_1_percentage!),
+					weight: normalizeWeight(trainingMax * session.warmup_set_1_percentage!),
 					isAmrap: false
 				},
 				{
 					reps: session.warmup_set_2_reps!,
-					weight: normalizeWeight(session.current_training_max * session.warmup_set_2_percentage!),
+					weight: normalizeWeight(trainingMax * session.warmup_set_2_percentage!),
 					isAmrap: false
 				},
 				{
 					reps: session.warmup_set_3_reps!,
-					weight: normalizeWeight(session.current_training_max * session.warmup_set_3_percentage!),
+					weight: normalizeWeight(trainingMax * session.warmup_set_3_percentage!),
 					isAmrap: false
 				}
 			]
@@ -255,6 +258,7 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 		plannedAssistance,
 		history,
 		tmCheck,
+		trainingMax,
 		...neighbours
 	};
 };

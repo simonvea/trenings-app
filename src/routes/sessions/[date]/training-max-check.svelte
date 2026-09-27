@@ -67,8 +67,6 @@
 		</p>
 		{@render lowerForm(check.lowered, 'Ja, senk TM til', true)}
 	</section>
-{:else if check.kind === 'changed'}
-	<p class="changed muted">Training max er endret etter økta og er nå {formatKg(trainingMax)}.</p>
 {/if}
 
 <style>
@@ -96,9 +94,5 @@
 	.btn {
 		width: 100%;
 		min-height: var(--tap);
-	}
-
-	.changed {
-		margin: 0 0.25rem 1rem;
 	}
 </style>

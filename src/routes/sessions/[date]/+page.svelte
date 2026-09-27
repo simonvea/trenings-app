@@ -76,7 +76,12 @@
 	{:else}
 		<header class="lift">
 			<h2>{mainLift.name}</h2>
-			<span class="muted num">TM {formatKg(session.current_training_max)}</span>
+			<span class="muted num">
+				TM {formatKg(data.trainingMax)}
+				{#if data.trainingMax !== session.current_training_max}
+					· nå {formatKg(session.current_training_max)}
+				{/if}
+			</span>
 		</header>
 
 		{#if data.history}
