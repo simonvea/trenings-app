@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayFocus, dayStatus, entryPhase } from './status';
+import { dayFocus, dayStatus, entryPhase, sessionEntry } from './status';
 import type { DayPlanEntry } from './types';
 
 const walk: DayPlanEntry = { start: '06:10', end: '06:25', kind: 'dog', label: 'Morgentur' };
@@ -133,5 +133,48 @@ describe('dayFocus', () => {
 
 		// Assert
 		expect(focus).toEqual([]);
+	});
+});
+
+describe('sessionEntry', () => {
+	const bench: DayPlanEntry = {
+		start: '08:00',
+		end: '09:00',
+		kind: 'training',
+		label: 'Benkpress'
+	};
+
+	describe('given several training entries', () => {
+		it('when one is named after the lift, then the session belongs to that one', () => {
+			// Arrange
+			const entries = [walk, run, bench];
+
+			// Act
+			const entry = sessionEntry(entries, 'Benkpress');
+
+			// Assert
+			expect(entry).toBe(bench);
+		});
+
+		it('when none is named after the lift, then the session belongs to the first one', () => {
+			// Arrange
+			const entries = [run, walk, squat];
+
+			// Act
+			const entry = sessionEntry(entries, 'Markløft');
+
+			// Assert
+			expect(entry).toBe(squat);
+		});
+	});
+
+	describe('given no training entries', () => {
+		it('when the session is placed, then it belongs to none of them', () => {
+			// Arrange, Act
+			const entry = sessionEntry([walk, work], 'Knebøy');
+
+			// Assert
+			expect(entry).toBeUndefined();
+		});
 	});
 });

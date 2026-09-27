@@ -23,10 +23,11 @@ export const formatDuration = (minutes: number): string => {
 // Date.getDay() counts from Sunday; the app's weeks start on Monday
 export const weekdayOf = (iso: string): Weekday => weekdays[(parseIsoDate(iso).getDay() + 6) % 7];
 
-export const datesOfWeek = (iso: string): Record<Weekday, string> => {
-	const monday = addDays(iso, -weekdays.indexOf(weekdayOf(iso)));
-	return Object.fromEntries(weekdays.map((day, i) => [day, addDays(monday, i)])) as Record<
-		Weekday,
-		string
-	>;
+export const isWeekday = (value: string): value is Weekday =>
+	(weekdays as readonly string[]).includes(value);
+
+/** The first date on or after `fromIso` that falls on `weekday` */
+export const nextDateOf = (weekday: Weekday, fromIso: string): string => {
+	const daysAhead = (weekdays.indexOf(weekday) - weekdays.indexOf(weekdayOf(fromIso)) + 7) % 7;
+	return addDays(fromIso, daysAhead);
 };

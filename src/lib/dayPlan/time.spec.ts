@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-	datesOfWeek,
 	formatDuration,
 	isClockTime,
+	isWeekday,
 	minutesOfDay,
+	nextDateOf,
 	toMinutes,
 	weekdayOf
 } from './time';
@@ -86,38 +87,60 @@ describe('weekdayOf', () => {
 	});
 });
 
-describe('datesOfWeek', () => {
-	describe('given a Sunday', () => {
-		it('when the week is looked up, then it runs from the Monday before', () => {
-			// Arrange
-			const sunday = '2026-10-04';
+describe('isWeekday', () => {
+	it.each([
+		['monday', true],
+		['sunday', true],
+		['Monday', false],
+		['', false]
+	])('when given "%s", then it returns %s', (value, expected) => {
+		// Arrange, Act
+		const valid = isWeekday(value);
 
-			// Act
-			const dates = datesOfWeek(sunday);
+		// Assert
+		expect(valid).toBe(expected);
+	});
+});
+
+describe('nextDateOf', () => {
+	describe('given today is Sunday 4 October', () => {
+		const sunday = '2026-10-04';
+
+		it('when asked for Monday, then it is tomorrow', () => {
+			// Arrange, Act
+			const date = nextDateOf('monday', sunday);
 
 			// Assert
-			expect(dates).toEqual({
-				monday: '2026-09-28',
-				tuesday: '2026-09-29',
-				wednesday: '2026-09-30',
-				thursday: '2026-10-01',
-				friday: '2026-10-02',
-				saturday: '2026-10-03',
-				sunday: '2026-10-04'
-			});
+			expect(date).toBe('2026-10-05');
+		});
+
+		it('when asked for Sunday, then it is today', () => {
+			// Arrange, Act
+			const date = nextDateOf('sunday', sunday);
+
+			// Assert
+			expect(date).toBe('2026-10-04');
+		});
+
+		it('when asked for Saturday, then it is six days ahead', () => {
+			// Arrange, Act
+			const date = nextDateOf('saturday', sunday);
+
+			// Assert
+			expect(date).toBe('2026-10-10');
 		});
 	});
 
 	describe('given a week that crosses the end of daylight saving time', () => {
-		it('when the week is looked up, then every day is still one calendar day apart', () => {
+		it('when asked for that Sunday, then it is still six calendar days ahead', () => {
 			// Arrange
 			const monday = '2026-10-19';
 
 			// Act
-			const dates = datesOfWeek(monday);
+			const date = nextDateOf('sunday', monday);
 
 			// Assert
-			expect(dates.sunday).toBe('2026-10-25');
+			expect(date).toBe('2026-10-25');
 		});
 	});
 });
