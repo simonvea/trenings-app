@@ -3,7 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { formatShortDate, today } from '$lib/date';
-	import { formatKg } from '$lib/format';
+	import { formatChange, formatKg } from '$lib/format';
 	import { estimateOneRepMax, parseTestSet, trainingMaxFromTest } from '$lib/trainingMax';
 	import type { PageProps } from './$types';
 
@@ -25,9 +25,6 @@
 	const lift = $derived(data.lifts.find((l) => l.id === liftId));
 	const parsed = $derived(parseTestSet({ weight, reps }));
 	const oneDecimal = (kg: number): number => Math.round(kg * 10) / 10;
-	const signedKg = (kg: number): string =>
-		`${kg > 0 ? '+' : kg < 0 ? '−' : '±'}${formatKg(Math.abs(kg))}`;
-
 	// Deleting takes a second tap, so scrolling the list with a thumb cannot remove a test.
 	// The confirm button appears under the finger, so a quick double tap is ignored.
 	let confirmingId = $state<number>();
@@ -129,7 +126,7 @@
 				{#if lift?.trainingMax}
 					<span class="muted num">
 						Nå: {formatKg(lift.trainingMax)}
-						({signedKg(trainingMaxFromTest(parsed.value) - lift.trainingMax)})
+						({formatChange(lift.trainingMax, trainingMaxFromTest(parsed.value))})
 					</span>
 				{/if}
 			{:else if weight && reps}

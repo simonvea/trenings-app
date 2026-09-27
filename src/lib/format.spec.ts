@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatReps, parseDecimal, parseWholeNumber } from './format';
+import { formatChange, formatReps, parseDecimal, parseWholeNumber } from './format';
 
 describe('parseDecimal', () => {
 	it('when the value uses a Norwegian decimal comma, then it parses as a number', () => {
@@ -63,5 +63,41 @@ describe('parseWholeNumber', () => {
 
 		// Assert
 		expect(value).toBe(expected);
+	});
+});
+
+describe('formatChange', () => {
+	describe('given a new training max below the current one', () => {
+		it('when formatting, then kilos and percent carry a minus sign', () => {
+			// Arrange
+			const from = 150;
+			const to = 109.5;
+
+			// Act
+			const text = formatChange(from, to);
+
+			// Assert
+			expect(text).toBe('−40,5 kg · −27 %');
+		});
+	});
+
+	describe('given a higher training max', () => {
+		it('when formatting, then it carries a plus sign', () => {
+			// Arrange, Act
+			const text = formatChange(90, 94);
+
+			// Assert
+			expect(text).toBe('+4 kg · +4 %');
+		});
+	});
+
+	describe('given no current training max', () => {
+		it('when formatting, then there is no percentage', () => {
+			// Arrange, Act
+			const text = formatChange(0, 94);
+
+			// Assert
+			expect(text).toBe('+94 kg');
+		});
 	});
 });

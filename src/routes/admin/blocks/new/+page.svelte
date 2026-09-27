@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { formatShortDate, localDateOfUtcTimestamp } from '$lib/date';
-	import { formatKg } from '$lib/format';
+	import { formatChange, formatKg } from '$lib/format';
 	import { translateCycleType, translateDay, translateLiftName } from '$lib/helpers';
 	import { planBlock } from '$lib/planning/schedule';
 	import { defaultTrainingMaxSource, type TrainingMaxSource } from '$lib/trainingMax';
@@ -107,6 +107,8 @@
 	const blockLifts = $derived(
 		[...new Set(days.map((d) => d.liftId))].flatMap((id) => data.lifts.filter((l) => l.id === id))
 	);
+	// A jump this large usually means a typo or a test on a bad day; worth a second look
+	const isBigChange = (from: number, to: number): boolean => Math.abs(to - from) / from > 0.1;
 	const chosenTrainingMax = (liftId: number): number =>
 		trainingMaxSource[liftId] === 'test'
 			? (testFor(liftId)?.training_max ?? 0)
@@ -249,6 +251,19 @@
 							<span class="option-text">
 								<span>Test {formatShortDate(test.test_date)}</span>
 								<span class="muted num">{test.reps} × {formatKg(test.weight)}</span>
+								{#if lift.current_training_max}
+									<span
+										class="num change"
+										class:big={isBigChange(lift.current_training_max, test.training_max)}
+									>
+										{formatChange(lift.current_training_max, test.training_max)}{isBigChange(
+											lift.current_training_max,
+											test.training_max
+										)
+											? ' · stor endring'
+											: ''}
+									</span>
+								{/if}
 							</span>
 							<strong class="num">{formatKg(test.training_max)}</strong>
 						</label>
@@ -510,6 +525,16 @@
 		flex: 1;
 		flex-direction: column;
 		line-height: 1.3;
+	}
+
+	.change {
+		font-size: 0.85rem;
+		color: var(--text-muted);
+	}
+
+	.change.big {
+		color: var(--danger);
+		font-weight: 700;
 	}
 
 	.option-text .muted {
