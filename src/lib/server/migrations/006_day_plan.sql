@@ -1,0 +1,81 @@
+-- How a weekday should be structured, from waking up to the evening walk. One weekly template:
+-- the plan is the same every week, so entries are keyed by weekday, not by date.
+-- The office block is shaped by the dog, who can't be left alone for more than six hours.
+CREATE TABLE day_plan_entries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  weekday TEXT NOT NULL CHECK(weekday IN ('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')),
+  start_time TEXT NOT NULL CHECK(start_time GLOB '[01][0-9]:[0-5][0-9]' OR start_time GLOB '2[0-3]:[0-5][0-9]'),
+  end_time TEXT NOT NULL CHECK((end_time GLOB '[01][0-9]:[0-5][0-9]' OR end_time GLOB '2[0-3]:[0-5][0-9]') AND end_time > start_time),
+  kind TEXT NOT NULL CHECK(kind IN ('routine', 'dog', 'work', 'commute', 'training', 'meal', 'social')),
+  label TEXT NOT NULL CHECK(label <> ''),
+  note TEXT
+);
+
+CREATE INDEX idx_day_plan_entries_weekday ON day_plan_entries(weekday, start_time);
+
+INSERT INTO day_plan_entries (weekday, start_time, end_time, kind, label, note) VALUES
+  ('monday', '06:00', '06:10', 'routine', 'Opp og gjør deg klar', NULL),
+  ('monday', '06:10', '06:25', 'dog', 'Morgentur med hunden', NULL),
+  ('monday', '06:25', '07:30', 'work', 'Jobb hjemmefra', NULL),
+  ('monday', '07:30', '08:00', 'commute', 'Sykle til kontoret', NULL),
+  ('monday', '08:00', '09:00', 'training', 'Knebøy', 'Inkludert dusj'),
+  ('monday', '09:00', '11:30', 'work', 'Jobb på kontoret', NULL),
+  ('monday', '11:30', '12:00', 'meal', 'Lunsj', NULL),
+  ('monday', '12:00', '12:30', 'social', 'Kaffe og prat', NULL),
+  ('monday', '12:30', '13:00', 'commute', 'Sykle hjem', NULL),
+  ('monday', '13:00', '13:10', 'dog', 'Kort tur', 'Tissepause'),
+  ('monday', '13:10', '17:05', 'work', 'Jobb hjemmefra', NULL),
+  ('monday', '17:05', '18:05', 'dog', 'Kveldstur', NULL),
+
+  ('tuesday', '06:00', '06:10', 'routine', 'Opp og gjør deg klar', NULL),
+  ('tuesday', '06:10', '06:25', 'dog', 'Morgentur med hunden', NULL),
+  ('tuesday', '06:25', '07:30', 'work', 'Jobb hjemmefra', NULL),
+  ('tuesday', '07:30', '08:00', 'commute', 'Sykle til kontoret', NULL),
+  ('tuesday', '08:00', '09:00', 'training', 'Benkpress', 'Inkludert dusj'),
+  ('tuesday', '09:00', '11:30', 'work', 'Jobb på kontoret', NULL),
+  ('tuesday', '11:30', '12:00', 'meal', 'Lunsj', NULL),
+  ('tuesday', '12:00', '12:30', 'social', 'Kaffe og prat', NULL),
+  ('tuesday', '12:30', '13:00', 'commute', 'Sykle hjem', NULL),
+  ('tuesday', '13:00', '13:10', 'dog', 'Kort tur', 'Tissepause'),
+  ('tuesday', '13:10', '17:05', 'work', 'Jobb hjemmefra', NULL),
+  ('tuesday', '17:05', '18:05', 'training', 'Rolig løpetur', 'Med hunden, erstatter kveldsturen'),
+
+  ('wednesday', '06:00', '06:10', 'routine', 'Opp og gjør deg klar', NULL),
+  ('wednesday', '06:10', '06:25', 'dog', 'Morgentur med hunden', NULL),
+  ('wednesday', '06:25', '07:25', 'training', 'Hard løpetur', 'Inkludert dusj'),
+  ('wednesday', '07:25', '07:30', 'routine', 'Buffer', NULL),
+  ('wednesday', '07:30', '08:00', 'commute', 'Sykle til kontoret', NULL),
+  ('wednesday', '08:00', '11:30', 'work', 'Jobb på kontoret', NULL),
+  ('wednesday', '11:30', '12:00', 'meal', 'Lunsj', NULL),
+  ('wednesday', '12:00', '12:30', 'social', 'Kaffe og prat', NULL),
+  ('wednesday', '12:30', '13:00', 'commute', 'Sykle hjem', NULL),
+  ('wednesday', '13:00', '13:10', 'dog', 'Kort tur', 'Tissepause'),
+  ('wednesday', '13:10', '17:10', 'work', 'Jobb hjemmefra', NULL),
+  ('wednesday', '17:10', '18:10', 'dog', 'Kveldstur', NULL),
+
+  ('thursday', '06:00', '06:10', 'routine', 'Opp og gjør deg klar', NULL),
+  ('thursday', '06:10', '06:25', 'dog', 'Morgentur med hunden', NULL),
+  ('thursday', '06:25', '08:15', 'work', 'Jobb hjemmefra', 'Senere avreise på grunn av møtet'),
+  ('thursday', '08:15', '08:45', 'commute', 'Sykle til kontoret', NULL),
+  ('thursday', '08:45', '09:45', 'training', 'Markløft', 'Inkludert dusj'),
+  ('thursday', '09:45', '11:30', 'work', 'Jobb på kontoret', NULL),
+  ('thursday', '11:30', '12:00', 'meal', 'Lunsj', NULL),
+  ('thursday', '12:00', '12:15', 'social', 'Kaffe', 'Kort, før møtet'),
+  ('thursday', '12:15', '13:15', 'work', 'Møte på kontoret', NULL),
+  ('thursday', '13:15', '13:45', 'commute', 'Sykle hjem', NULL),
+  ('thursday', '13:45', '13:55', 'dog', 'Kort tur', 'Tissepause'),
+  ('thursday', '13:55', '16:50', 'work', 'Jobb hjemmefra', NULL),
+  ('thursday', '16:50', '17:50', 'dog', 'Kveldstur', NULL),
+
+  ('friday', '06:00', '06:10', 'routine', 'Opp og gjør deg klar', NULL),
+  ('friday', '06:10', '06:25', 'dog', 'Morgentur med hunden', NULL),
+  ('friday', '06:25', '07:30', 'work', 'Jobb hjemmefra', NULL),
+  ('friday', '07:30', '08:00', 'commute', 'Sykle til kontoret', NULL),
+  ('friday', '08:00', '09:00', 'training', 'Roing', 'Inkludert dusj'),
+  ('friday', '09:00', '11:30', 'work', 'Jobb på kontoret', NULL),
+  ('friday', '11:30', '12:00', 'meal', 'Lunsj', NULL),
+  ('friday', '12:00', '12:30', 'social', 'Kaffe og prat', NULL),
+  ('friday', '12:30', '13:00', 'commute', 'Sykle hjem', NULL),
+  ('friday', '13:00', '13:10', 'dog', 'Kort tur', 'Tissepause'),
+  ('friday', '13:10', '17:05', 'work', 'Jobb hjemmefra', NULL),
+  ('friday', '17:05', '18:05', 'dog', 'Kveldstur', NULL);

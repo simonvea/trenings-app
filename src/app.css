@@ -20,6 +20,15 @@
 	--danger: #b91c1c;
 	--danger-soft: #fde4e4;
 
+	/* Day plan entry kinds */
+	--kind-routine: #7b8594;
+	--kind-dog: #b45309;
+	--kind-work: #2563eb;
+	--kind-commute: #0f766e;
+	--kind-training: #c2410c;
+	--kind-meal: #7c3aed;
+	--kind-social: #be185d;
+
 	--radius: 14px;
 	--radius-sm: 8px;
 	--shadow: 0 1px 2px rgb(16 24 40 / 0.06), 0 1px 3px rgb(16 24 40 / 0.08);
@@ -50,6 +59,13 @@
 		--success-soft: #143321;
 		--danger: #f87171;
 		--danger-soft: #3b1718;
+		--kind-routine: #9aa3b2;
+		--kind-dog: #f59e0b;
+		--kind-work: #4f8cff;
+		--kind-commute: #2dd4bf;
+		--kind-training: #fb923c;
+		--kind-meal: #a78bfa;
+		--kind-social: #f472b6;
 		--shadow: none;
 	}
 }
