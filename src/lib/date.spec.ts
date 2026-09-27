@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, formatDayHeading, formatShortDate, formatWeekdayShort, toIsoDate } from './date';
+import {
+	addDays,
+	formatDayHeading,
+	formatShortDate,
+	formatWeekdayShort,
+	isIsoDate,
+	toIsoDate
+} from './date';
 
 describe('toIsoDate', () => {
 	it('when given a local date just after midnight, then it returns that local calendar day', () => {
@@ -12,6 +19,30 @@ describe('toIsoDate', () => {
 		// Assert
 		expect(iso).toBe('2026-09-28');
 	});
+});
+
+describe('isIsoDate', () => {
+	it.each(['2026-09-27', '2028-02-29'])(
+		'when given the real day %s, then it is accepted',
+		(iso) => {
+			// Arrange, Act
+			const valid = isIsoDate(iso);
+
+			// Assert
+			expect(valid).toBe(true);
+		}
+	);
+
+	it.each(['2026-13-45', '2026-02-29', '27.09.2026', ''])(
+		'when given "%s", then it is rejected',
+		(iso) => {
+			// Arrange, Act
+			const valid = isIsoDate(iso);
+
+			// Assert
+			expect(valid).toBe(false);
+		}
+	);
 });
 
 describe('addDays', () => {

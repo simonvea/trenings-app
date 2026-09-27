@@ -15,6 +15,10 @@ export const parseIsoDate = (iso: string): Date => {
 	return new Date(year, month - 1, day);
 };
 
+// Rejects days that only look like dates, e.g. 2026-02-30, which Date would roll into March
+export const isIsoDate = (iso: string): boolean =>
+	ISO_DATE.test(iso) && toIsoDate(parseIsoDate(iso)) === iso;
+
 export const today = (): string => toIsoDate(new Date());
 
 export const addDays = (iso: string, days: number): string => {

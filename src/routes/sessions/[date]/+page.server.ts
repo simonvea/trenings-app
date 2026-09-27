@@ -1,4 +1,5 @@
 import { normalizeWeight } from '$lib/core';
+import { isIsoDate } from '$lib/date';
 import { parseDecimal } from '$lib/format';
 import { supplementalWeight } from '$lib/supplemental';
 import type {
@@ -95,7 +96,7 @@ export const actions = {
 
 export const load: PageServerLoad = async ({ params }) => {
 	const { date } = params;
-	if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) error(404, 'Ugyldig dato');
+	if (!isIsoDate(date)) error(404, 'Ugyldig dato');
 
 	const session =
 		sql.get`SELECT *, s.id AS session_id, s.notes AS session_notes, s.completed_date AS session_completed_date, lifts.name AS liftName, week.name AS weekName, template.name AS templateName FROM workout_sessions as s

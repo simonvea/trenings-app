@@ -127,6 +127,19 @@
 	{/if}
 </section>
 
+<section>
+	<h2 class="section-title">Training max</h2>
+	<a class="card link-row" href={resolve('/tm-tests')}>
+		<span class="what">
+			<strong>Test training max</strong>
+			<span class="muted">Registrer et tungt sett og få beregnet ny TM</span>
+		</span>
+		<svg viewBox="0 0 24 24" aria-hidden="true">
+			<path d="M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z" />
+		</svg>
+	</a>
+</section>
+
 <style>
 	.date {
 		margin: 0.25rem 0.25rem 1rem;
@@ -230,7 +243,18 @@
 		font-size: 0.9rem;
 	}
 
-	.list svg {
+	.link-row {
+		display: flex;
+		align-items: center;
+		gap: 0.9rem;
+		min-height: 60px;
+		padding: 0.6rem 1rem;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.list svg,
+	.link-row svg {
 		width: 22px;
 		height: 22px;
 		fill: var(--text-muted);
