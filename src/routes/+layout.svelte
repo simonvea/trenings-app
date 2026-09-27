@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { LayoutProps } from './$types';
 	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
 	import favicon from '$lib/assets/favicon.svg';
 
 	let { children }: LayoutProps = $props();
@@ -35,9 +36,9 @@
 
 	<aside class="sidebar" class:open={menuOpen}>
 		<nav class="nav">
-			<a href="/" onclick={closeMenu}>Hjem</a>
-			<a href={'/sessions/' + today} onclick={closeMenu}>Dagens økt</a>
-			<a href="/admin" onclick={closeMenu}>Admin</a>
+			<a href={resolve('/')} onclick={closeMenu}>Hjem</a>
+			<a href={resolve('/sessions/[date]', { date: today })} onclick={closeMenu}>Dagens økt</a>
+			<a href={resolve('/admin')} onclick={closeMenu}>Admin</a>
 		</nav>
 	</aside>
 

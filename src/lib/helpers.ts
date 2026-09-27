@@ -13,7 +13,6 @@ export function translateLiftName(lift: string): LiftName {
 	return liftTranslations[lift];
 }
 
-const days = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
 const dayTranslations: Record<string, string> = {
 	monday: 'Mandag',
 	tuesday: 'Tirsdag',

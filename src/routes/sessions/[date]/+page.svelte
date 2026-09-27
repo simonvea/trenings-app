@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { SvelteDate } from 'svelte/reactivity';
+	import { resolve } from '$app/paths';
 	import type { PageProps } from './$types';
 	import AssistanceSelect from './assistance-select.svelte';
 
@@ -50,9 +51,9 @@
 </script>
 
 <section data-sveltekit-reload class="nav">
-	<a href={`/sessions/${getDateString(yesterday)}`}>forrige</a>
+	<a href={resolve('/sessions/[date]', { date: getDateString(yesterday) })}>forrige</a>
 	<p>{todayName}: {today.toLocaleDateString('no')}</p>
-	<a href={`/sessions/${getDateString(tomorrow)}`}>neste</a>
+	<a href={resolve('/sessions/[date]', { date: getDateString(tomorrow) })}>neste</a>
 </section>
 
 {#if !session || !mainLift || !exercises}

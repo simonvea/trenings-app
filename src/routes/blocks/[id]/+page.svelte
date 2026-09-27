@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { translateCycleType, translateDay, translateLiftName } from '$lib/helpers';
 	const { data } = $props();
 
@@ -60,7 +61,7 @@
 	</thead>
 	<tbody>
 		{#each cycles as cycle (cycle.id)}
-			<tr onclick={() => goto('/cycles/' + cycle.id)}>
+			<tr onclick={() => goto(resolve('/cycles/[id]', { id: String(cycle.id) }))}>
 				<td>{translateCycleType(cycle.cycle_type)}</td>
 				<td>{cycle.supplemental_name || cycle.seventh_week_name}</td>
 				<td>

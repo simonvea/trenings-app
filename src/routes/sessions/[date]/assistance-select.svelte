@@ -61,7 +61,7 @@
 		</div>
 	</div>
 	<div class="inputs">
-		{#each sets as s, index (index)}
+		{#each sets, index (index)}
 			<input
 				type="tel"
 				name={name + '-set'}

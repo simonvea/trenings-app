@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { PageProps } from './$types';
 	const { data }: PageProps = $props();
 
@@ -11,10 +12,10 @@
 <ul>
 	{#each blocks as block (block.id)}
 		<li>
-			<a href={'/blocks/' + block.id}>
+			<a href={resolve('/blocks/[id]', { id: String(block.id) })}>
 				{block.name}
 			</a>
 		</li>
 	{/each}
 </ul>
-<a href={'/sessions/' + today}>Dagens økt</a>
+<a href={resolve('/sessions/[date]', { date: today })}>Dagens økt</a>
