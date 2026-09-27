@@ -4,10 +4,10 @@
 CREATE TABLE day_plan_entries (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   weekday TEXT NOT NULL CHECK(weekday IN ('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')),
-  start_time TEXT NOT NULL CHECK(start_time GLOB '[0-2][0-9]:[0-5][0-9]'),
-  end_time TEXT NOT NULL CHECK(end_time GLOB '[0-2][0-9]:[0-5][0-9]' AND end_time > start_time),
+  start_time TEXT NOT NULL CHECK(start_time GLOB '[01][0-9]:[0-5][0-9]' OR start_time GLOB '2[0-3]:[0-5][0-9]'),
+  end_time TEXT NOT NULL CHECK((end_time GLOB '[01][0-9]:[0-5][0-9]' OR end_time GLOB '2[0-3]:[0-5][0-9]') AND end_time > start_time),
   kind TEXT NOT NULL CHECK(kind IN ('routine', 'dog', 'work', 'commute', 'training', 'meal', 'social')),
-  label TEXT NOT NULL,
+  label TEXT NOT NULL CHECK(label <> ''),
   note TEXT
 );
 

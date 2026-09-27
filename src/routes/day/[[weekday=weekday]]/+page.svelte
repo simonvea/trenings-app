@@ -85,10 +85,10 @@
 </header>
 
 {#if isToday && status.state !== 'empty'}
-	<section class="card now" aria-label="Nå" aria-live="polite">
+	<section class="card now" aria-label="Nå">
 		{#if status.state === 'active'}
 			<span class="eyebrow">Nå · til {status.current.end}</span>
-			<span class="now-label">{status.current.label}</span>
+			<span class="now-label" aria-live="polite">{status.current.label}</span>
 			{#if status.current.note}<span class="muted">{status.current.note}</span>{/if}
 			<span
 				class="progress"
@@ -102,7 +102,7 @@
 			</span>
 			<span class="muted num">{formatDuration(status.remainingMinutes)} igjen</span>
 			{#if session && status.current === sessionOwner}
-				<a class="btn start" href={resolve('/sessions/[date]', { date })}>Åpne økt</a>
+				<a class="btn open-session" href={resolve('/sessions/[date]', { date })}>Åpne økt</a>
 			{/if}
 			{#if status.next}
 				<span class="next">
@@ -112,13 +112,13 @@
 			{/if}
 		{:else if status.state === 'before' || status.state === 'gap'}
 			<span class="eyebrow">{status.state === 'before' ? 'Dagen starter' : 'Ledig'}</span>
-			<span class="now-label">{status.next.label}</span>
+			<span class="now-label" aria-live="polite">{status.next.label}</span>
 			<span class="muted num">
 				Kl. {status.next.start}, om {formatDuration(status.minutesUntil)}
 			</span>
 		{:else}
 			<span class="eyebrow">Ferdig</span>
-			<span class="now-label">Dagens plan er gjennomført</span>
+			<span class="now-label" aria-live="polite">Dagens plan er gjennomført</span>
 			<a
 				href={resolve('/day/[[weekday=weekday]]', { weekday: tomorrow })}
 				data-sveltekit-replacestate
@@ -273,7 +273,7 @@
 		background: var(--accent);
 	}
 
-	.start {
+	.open-session {
 		align-self: stretch;
 		margin-top: 0.5rem;
 		min-height: 52px;

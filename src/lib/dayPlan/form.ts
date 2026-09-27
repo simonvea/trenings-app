@@ -4,9 +4,11 @@ import { entryKinds, type DayPlanEntry, type EntryKind } from './types';
 /** One row as typed into the edit form, before validation */
 export type DayPlanRow = { start: string; end: string; kind: string; label: string; note: string };
 
+export type RowError = { field: 'times' | 'label' | 'kind'; message: string };
+
 export type DayPlanFormErrors = {
 	/** Keyed by the row's index in the submitted form */
-	rows: Record<number, string>;
+	rows: Record<number, RowError>;
 	form?: string;
 };
 
@@ -32,11 +34,14 @@ const readRows = (data: FormData): DayPlanRow[] => {
 // A row added and left untouched; the kind select always has a value, so it doesn't count
 const isBlank = (row: DayPlanRow): boolean => !row.start && !row.end && !row.label && !row.note;
 
-const rowError = (row: DayPlanRow): string | undefined => {
-	if (!isClockTime(row.start) || !isClockTime(row.end)) return 'Fyll inn start og slutt';
-	if (toMinutes(row.end) <= toMinutes(row.start)) return 'Slutt må være etter start';
-	if (!row.label) return 'Skriv hva som skal skje';
-	if (!entryKinds.includes(row.kind as EntryKind)) return 'Velg en type';
+const rowError = (row: DayPlanRow): RowError | undefined => {
+	if (!isClockTime(row.start) || !isClockTime(row.end))
+		return { field: 'times', message: 'Fyll inn start og slutt' };
+	if (toMinutes(row.end) <= toMinutes(row.start))
+		return { field: 'times', message: 'Slutt må være etter start' };
+	if (!row.label) return { field: 'label', message: 'Skriv hva som skal skje' };
+	if (!entryKinds.includes(row.kind as EntryKind))
+		return { field: 'kind', message: 'Velg en type' };
 	return undefined;
 };
 
@@ -48,11 +53,13 @@ const toEntry = (row: DayPlanRow): DayPlanEntry => ({
 	...(row.note && { note: row.note })
 });
 
-const describe = (e: DayPlanEntry): string => `${e.label} (${e.start}–${e.end})`;
+const describeEntry = (e: DayPlanEntry): string => `${e.label} (${e.start}–${e.end})`;
 
-const overlapError = (sorted: DayPlanEntry[]): string | undefined => {
+export const overlapError = (sorted: DayPlanEntry[]): string | undefined => {
 	const i = sorted.findIndex((e, i) => i > 0 && e.start < sorted[i - 1].end);
-	return i > 0 ? `${describe(sorted[i - 1])} overlapper med ${describe(sorted[i])}` : undefined;
+	return i > 0
+		? `${describeEntry(sorted[i - 1])} overlapper med ${describeEntry(sorted[i])}`
+		: undefined;
 };
 
 export const parseDayPlanForm = (data: FormData): DayPlanFormResult => {

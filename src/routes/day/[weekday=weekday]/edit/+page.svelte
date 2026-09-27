@@ -26,11 +26,11 @@
 			}))
 		).map(withId);
 	let rows = $state(untrack(initialRows));
-	// Row errors are keyed by position, so they no longer fit once a row is removed
-	let rowErrorsStale = $state(false);
+	// Errors describe the rows as submitted, so they no longer fit once a row is removed
+	let errorsStale = $state(false);
 	let saving = $state(false);
 
-	const rowErrors = $derived(rowErrorsStale ? {} : (form?.errors.rows ?? {}));
+	const errors = $derived(errorsStale ? undefined : form?.errors);
 
 	const addRow = (): void => {
 		const previous = rows.at(-1);
@@ -41,7 +41,7 @@
 
 	const removeRow = (id: number): void => {
 		rows = rows.filter((r) => r.id !== id);
-		rowErrorsStale = true;
+		errorsStale = true;
 	};
 </script>
 
@@ -49,15 +49,15 @@
 	method="POST"
 	use:enhance={() => {
 		saving = true;
-		rowErrorsStale = false;
+		errorsStale = false;
 		return async ({ update }) => {
 			await update({ reset: false });
 			saving = false;
 		};
 	}}
 >
-	{#if form?.errors.form}
-		<p class="card form-error error" role="alert">{form.errors.form}</p>
+	{#if errors?.form}
+		<p class="card form-error error" role="alert">{errors.form}</p>
 	{/if}
 
 	{#if rows.length === 0}
@@ -68,7 +68,8 @@
 
 	<ol class="rows">
 		{#each rows as row, i (row.id)}
-			{@const rowError = rowErrors[i]}
+			{@const rowError = errors?.rows[i]}
+			{@const errorId = rowError && `row-error-${row.id}`}
 			<li class="card row" class:invalid={rowError}>
 				<div class="times">
 					<label>
@@ -78,7 +79,8 @@
 							type="time"
 							name="start"
 							bind:value={row.start}
-							aria-invalid={rowError ? 'true' : undefined}
+							aria-invalid={rowError?.field === 'times' ? 'true' : undefined}
+							aria-describedby={rowError?.field === 'times' ? errorId : undefined}
 						/>
 					</label>
 					<label>
@@ -88,12 +90,18 @@
 							type="time"
 							name="end"
 							bind:value={row.end}
-							aria-invalid={rowError ? 'true' : undefined}
+							aria-invalid={rowError?.field === 'times' ? 'true' : undefined}
+							aria-describedby={rowError?.field === 'times' ? errorId : undefined}
 						/>
 					</label>
 					<label>
 						<span>Type</span>
-						<select name="kind" bind:value={row.kind}>
+						<select
+							name="kind"
+							bind:value={row.kind}
+							aria-invalid={rowError?.field === 'kind' ? 'true' : undefined}
+							aria-describedby={rowError?.field === 'kind' ? errorId : undefined}
+						>
 							{#each entryKinds as kind (kind)}
 								<option value={kind}>{kindNames[kind]}</option>
 							{/each}
@@ -106,7 +114,8 @@
 						name="label"
 						bind:value={row.label}
 						autocomplete="off"
-						aria-invalid={rowError ? 'true' : undefined}
+						aria-invalid={rowError?.field === 'label' ? 'true' : undefined}
+						aria-describedby={rowError?.field === 'label' ? errorId : undefined}
 					/>
 				</label>
 				<div class="note-row">
@@ -123,7 +132,9 @@
 						Fjern
 					</button>
 				</div>
-				{#if rowError}<p class="error row-error">{rowError}</p>{/if}
+				{#if rowError}
+					<p class="error row-error" id={errorId} role="alert">{rowError.message}</p>
+				{/if}
 			</li>
 		{/each}
 	</ol>

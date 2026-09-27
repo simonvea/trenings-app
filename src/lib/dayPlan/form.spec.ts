@@ -75,36 +75,36 @@ describe('parseDayPlanForm', () => {
 	});
 
 	describe('given an invalid row', () => {
-		it('when a time is missing, then that row is reported', () => {
+		it('when a time is missing, then that row’s times are reported', () => {
 			// Arrange, Act
 			const errors = errorsFor([row(), row({ start: '09:00', end: '' })]);
 
 			// Assert
-			expect(errors.rows).toEqual({ 1: 'Fyll inn start og slutt' });
+			expect(errors.rows).toEqual({ 1: { field: 'times', message: 'Fyll inn start og slutt' } });
 		});
 
-		it('when the end is not after the start, then that row is reported', () => {
+		it('when the end is not after the start, then that row’s times are reported', () => {
 			// Arrange, Act
 			const errors = errorsFor([row({ start: '09:00', end: '09:00' })]);
 
 			// Assert
-			expect(errors.rows).toEqual({ 0: 'Slutt må være etter start' });
+			expect(errors.rows).toEqual({ 0: { field: 'times', message: 'Slutt må være etter start' } });
 		});
 
-		it('when the label is blank, then that row is reported', () => {
+		it('when the label is blank, then that row’s label is reported', () => {
 			// Arrange, Act
 			const errors = errorsFor([row({ label: '  ', note: 'dusj' })]);
 
 			// Assert
-			expect(errors.rows).toEqual({ 0: 'Skriv hva som skal skje' });
+			expect(errors.rows).toEqual({ 0: { field: 'label', message: 'Skriv hva som skal skje' } });
 		});
 
-		it('when the kind is unknown, then that row is reported', () => {
+		it('when the kind is unknown, then that row’s kind is reported', () => {
 			// Arrange, Act
 			const errors = errorsFor([row({ kind: 'nap' })]);
 
 			// Assert
-			expect(errors.rows).toEqual({ 0: 'Velg en type' });
+			expect(errors.rows).toEqual({ 0: { field: 'kind', message: 'Velg en type' } });
 		});
 	});
 

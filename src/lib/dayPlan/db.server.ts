@@ -3,6 +3,7 @@ import { translateLiftName } from '$lib/helpers';
 import { weekdays, type Weekday } from '$lib/planning/types';
 import { sql, transaction } from '$lib/server/db';
 import type { LiftName } from '$lib/types';
+import { overlapError } from './form';
 import { isClockTime } from './time';
 import { entryKinds, type DayPlan, type DayPlanEntry, type EntryKind } from './types';
 
@@ -42,7 +43,10 @@ export function replaceDayPlan(weekday: Weekday, entries: DayPlanEntry[]): void 
 			`Invalid times on ${weekday}: ${e.start}–${e.end}`
 		);
 		assert(entryKinds.includes(e.kind), `Unknown kind on ${weekday}: ${e.kind}`);
+		assert(e.label.trim(), `Empty label on ${weekday} at ${e.start}`);
 	}
+	const overlap = overlapError(entries.toSorted((a, b) => a.start.localeCompare(b.start)));
+	assert(!overlap, `Overlapping entries on ${weekday}: ${overlap}`);
 
 	transaction(() => {
 		sql.run`DELETE FROM day_plan_entries WHERE weekday = ${weekday}`;
@@ -62,6 +66,7 @@ export function sessionsAroundToday(): PlannedSession[] {
 		INNER JOIN training_blocks AS b ON b.id = c.block_id
 		WHERE s.planned_date BETWEEN date('now', 'localtime', '-7 day') AND date('now', 'localtime', '+7 day')
 			AND b.completed_date IS NULL
+			AND s.status != 'skipped'
 		ORDER BY s.planned_date` as { planned_date: string; lift_name: string }[];
 	return rows.map((r) => ({ date: r.planned_date, liftName: translateLiftName(r.lift_name) }));
 }
