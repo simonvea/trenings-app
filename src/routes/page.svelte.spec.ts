@@ -4,10 +4,19 @@ import { render } from 'vitest-browser-svelte';
 import Page from './+page.svelte';
 
 describe('/+page.svelte', () => {
-	it('should render h1', async () => {
-		render(Page);
+	describe('given one training block', () => {
+		it('when rendered, then it shows the heading and links to the block', async () => {
+			// Arrange
+			const data = { blocks: [{ id: 1, name: 'Triumvirate' }] };
 
-		const heading = page.getByRole('heading', { level: 1 });
-		await expect.element(heading).toBeInTheDocument();
+			// Act
+			render(Page, { data, params: {}, form: undefined });
+
+			// Assert
+			await expect.element(page.getByRole('heading', { level: 1 })).toBeInTheDocument();
+			await expect
+				.element(page.getByRole('link', { name: 'Triumvirate' }))
+				.toHaveAttribute('href', '/blocks/1');
+		});
 	});
 });
