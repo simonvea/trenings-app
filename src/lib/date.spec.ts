@@ -5,6 +5,7 @@ import {
 	formatShortDate,
 	formatWeekdayShort,
 	isIsoDate,
+	localDateOfUtcTimestamp,
 	toIsoDate
 } from './date';
 
@@ -43,6 +44,19 @@ describe('isIsoDate', () => {
 			expect(valid).toBe(false);
 		}
 	);
+});
+
+describe('localDateOfUtcTimestamp', () => {
+	it('when given a late evening UTC timestamp, then it returns the local calendar day of that moment', () => {
+		// Arrange
+		const timestamp = '2026-09-27 22:30:00';
+
+		// Act
+		const date = localDateOfUtcTimestamp(timestamp);
+
+		// Assert
+		expect(date).toBe(toIsoDate(new Date(Date.UTC(2026, 8, 27, 22, 30))));
+	});
 });
 
 describe('addDays', () => {

@@ -9,6 +9,7 @@ export type TrainingMaxTest = {
 	weight: number;
 	reps: number;
 	training_max: number;
+	created_at: string;
 };
 
 export function addTrainingMaxTest(liftId: number, testDate: string, set: TestSet): void {
@@ -24,7 +25,7 @@ export function deleteTrainingMaxTest(id: number): void {
 }
 
 export function listTrainingMaxTests(): TrainingMaxTest[] {
-	return sql.all`SELECT id, lift_id, test_date, weight, reps, training_max
+	return sql.all`SELECT id, lift_id, test_date, weight, reps, training_max, created_at
 		FROM training_max_tests
 		ORDER BY test_date DESC, id DESC` as TrainingMaxTest[];
 }

@@ -13,7 +13,8 @@ import type {
 	CycleType,
 	NewBlock,
 	PlannedCycle,
-	ProgramTemplate
+	ProgramTemplate,
+	TrainingMaxPlan
 } from './types';
 
 type ProgramTemplateRow = {
@@ -108,6 +109,8 @@ export function createBlock(block: NewBlock, cycles: PlannedCycle[]): number {
 			 ${d1.liftId}, ${d2.liftId}, ${d3.liftId}, ${d4.liftId})`;
 		const blockId = Number(lastInsertRowid);
 
+		writeTrainingMaxes(block.trainingMaxes);
+
 		for (const a of block.assistance) {
 			sql.run`INSERT INTO block_assistance (block_id, lift_id, position, exercise_id, sets, reps)
 				VALUES (${blockId}, ${a.liftId}, ${a.position}, ${a.exerciseId}, ${a.sets}, ${a.reps})`;
@@ -158,26 +161,27 @@ export function completeBlock(blockId: number): void {
 	sql.run`UPDATE training_blocks SET completed_date = date('now') WHERE id = ${blockId}`;
 }
 
-export function updateTrainingMaxes(
-	trainingMaxes: { liftId: number; trainingMax: number }[]
-): void {
+// Callers own the transaction, so a block and its training maxes are saved together
+function writeTrainingMaxes(trainingMaxes: TrainingMaxPlan[]): void {
 	assert(
 		trainingMaxes.every((tm) => tm.trainingMax >= 0),
 		`Training max must not be negative: ${JSON.stringify(trainingMaxes)}`
 	);
 
-	transaction(() => {
-		for (const { liftId, trainingMax } of trainingMaxes) {
-			const current = sql.get`SELECT current_training_max FROM lifts WHERE id = ${liftId}` as
-				| Pick<LiftsDb, 'current_training_max'>
-				| undefined;
-			assert(current, `Unknown lift ${liftId}`);
-			if (current.current_training_max === trainingMax) continue;
+	for (const { liftId, trainingMax } of trainingMaxes) {
+		const current = sql.get`SELECT current_training_max FROM lifts WHERE id = ${liftId}` as
+			| Pick<LiftsDb, 'current_training_max'>
+			| undefined;
+		assert(current, `Unknown lift ${liftId}`);
+		if (current.current_training_max === trainingMax) continue;
 
-			sql.run`UPDATE lifts SET current_training_max = ${trainingMax}, updated_at = CURRENT_TIMESTAMP
-				WHERE id = ${liftId}`;
-			sql.run`INSERT INTO training_max_history (lift_id, training_max, effective_date)
-				VALUES (${liftId}, ${trainingMax}, date('now'))`;
-		}
-	});
+		sql.run`UPDATE lifts SET current_training_max = ${trainingMax}, updated_at = CURRENT_TIMESTAMP
+			WHERE id = ${liftId}`;
+		sql.run`INSERT INTO training_max_history (lift_id, training_max, effective_date)
+			VALUES (${liftId}, ${trainingMax}, date('now'))`;
+	}
+}
+
+export function updateTrainingMaxes(trainingMaxes: TrainingMaxPlan[]): void {
+	transaction(() => writeTrainingMaxes(trainingMaxes));
 }

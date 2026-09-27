@@ -19,6 +19,10 @@ export const parseIsoDate = (iso: string): Date => {
 export const isIsoDate = (iso: string): boolean =>
 	ISO_DATE.test(iso) && toIsoDate(parseIsoDate(iso)) === iso;
 
+// SQLite CURRENT_TIMESTAMP is UTC without a zone marker, e.g. '2026-09-27 22:30:00'
+export const localDateOfUtcTimestamp = (timestamp: string): string =>
+	toIsoDate(new Date(`${timestamp.replace(' ', 'T')}Z`));
+
 export const today = (): string => toIsoDate(new Date());
 
 export const addDays = (iso: string, days: number): string => {

@@ -38,3 +38,16 @@ export const parseTestSet = (input: { weight: string; reps: string }): ParseResu
 
 	return { ok: true, value: { weight, reps } };
 };
+
+export type TrainingMaxSource = 'current' | 'test';
+
+// Both timestamps are SQLite CURRENT_TIMESTAMP (UTC, same format), so they compare as text.
+// A test logged after the last change is the better starting point for a new block.
+export const defaultTrainingMaxSource = (
+	lift: { trainingMax: number; changedAt: string },
+	test: { createdAt: string } | undefined
+): TrainingMaxSource => {
+	if (!test) return 'current';
+	if (!lift.trainingMax) return 'test';
+	return test.createdAt > lift.changedAt ? 'test' : 'current';
+};

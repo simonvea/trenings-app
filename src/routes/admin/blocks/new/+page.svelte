@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { formatShortDate } from '$lib/date';
+	import { resolve } from '$app/paths';
+	import { formatShortDate, localDateOfUtcTimestamp } from '$lib/date';
+	import { formatKg } from '$lib/format';
 	import { translateCycleType, translateDay, translateLiftName } from '$lib/helpers';
 	import { planBlock } from '$lib/planning/schedule';
+	import { defaultTrainingMaxSource, type TrainingMaxSource } from '$lib/trainingMax';
 	import {
 		cycleTypes,
 		weekdays,
@@ -87,6 +90,27 @@
 
 	const liftName = (id: number): string =>
 		translateLiftName(data.lifts.find((l) => l.id === id)?.name ?? '');
+
+	const testFor = (liftId: number) => data.latestTests.find((t) => t.lift_id === liftId);
+	const defaultSources = (): Record<number, TrainingMaxSource> =>
+		Object.fromEntries(
+			data.lifts.map((lift) => {
+				const test = testFor(lift.id);
+				const source = defaultTrainingMaxSource(
+					{ trainingMax: lift.current_training_max, changedAt: lift.updated_at },
+					test && { createdAt: test.created_at }
+				);
+				return [lift.id, source];
+			})
+		);
+	let trainingMaxSource = $state(defaultSources());
+	const blockLifts = $derived(
+		[...new Set(days.map((d) => d.liftId))].flatMap((id) => data.lifts.filter((l) => l.id === id))
+	);
+	const chosenTrainingMax = (liftId: number): number =>
+		trainingMaxSource[liftId] === 'test'
+			? (testFor(liftId)?.training_max ?? 0)
+			: (data.lifts.find((l) => l.id === liftId)?.current_training_max ?? 0);
 
 	const preview = $derived.by(() => {
 		try {
@@ -181,6 +205,64 @@
 			</table>
 		</div>
 		{#if form?.errors?.days}<p class="error">{form.errors.days}</p>{/if}
+	</section>
+
+	<section>
+		<h2 class="section-title">Training max</h2>
+		<div class="tm-grid">
+			{#each blockLifts as lift (lift.id)}
+				{@const test = testFor(lift.id)}
+				<fieldset class="card tm-choice">
+					<legend>{translateLiftName(lift.name)}</legend>
+					<input
+						type="hidden"
+						name={`training_max_${lift.id}`}
+						value={chosenTrainingMax(lift.id)}
+					/>
+					{#if lift.current_training_max}
+						<label class="option">
+							<input
+								type="radio"
+								name={`tm_source_${lift.id}`}
+								value="current"
+								bind:group={trainingMaxSource[lift.id]}
+							/>
+							<span class="option-text">
+								<span>Nåværende</span>
+								<span class="muted">
+									endret {formatShortDate(localDateOfUtcTimestamp(lift.updated_at))}
+								</span>
+							</span>
+							<strong class="num">{formatKg(lift.current_training_max)}</strong>
+						</label>
+					{:else if !test}
+						<p class="missing">Mangler training max</p>
+					{/if}
+					{#if test}
+						<label class="option">
+							<input
+								type="radio"
+								name={`tm_source_${lift.id}`}
+								value="test"
+								bind:group={trainingMaxSource[lift.id]}
+							/>
+							<span class="option-text">
+								<span>Test {formatShortDate(test.test_date)}</span>
+								<span class="muted num">{test.reps} × {formatKg(test.weight)}</span>
+							</span>
+							<strong class="num">{formatKg(test.training_max)}</strong>
+						</label>
+					{/if}
+				</fieldset>
+			{/each}
+		</div>
+		<p class="hint">
+			Valget blir lagret som training max når blokka opprettes{#if data.activeBlockName}, og gjelder
+				da også resten av «{data.activeBlockName}»{/if}. Ta en ny test fra mobilen under
+			<a href={resolve('/tm-tests')}>TM-test</a>, eller endre training max direkte under
+			<a href={resolve('/admin')}>Planlegging</a>.
+		</p>
+		{#if form?.errors?.training_max}<p class="error">{form.errors.training_max}</p>{/if}
 	</section>
 
 	<section>
@@ -373,6 +455,71 @@
 
 	.error {
 		margin: 0.4rem 0 0;
+	}
+
+	.tm-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+		gap: 0.75rem;
+	}
+
+	.tm-choice {
+		margin: 0;
+		padding: 0.5rem 0.75rem 0.75rem;
+	}
+
+	.tm-choice legend {
+		float: left;
+		width: 100%;
+		padding: 0.25rem 0.25rem 0.4rem;
+		font-weight: 700;
+	}
+
+	.option {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 0.75rem;
+		min-height: var(--tap);
+		padding: 0.25rem 0.5rem;
+		border-radius: var(--radius-sm);
+		font-weight: 400;
+		cursor: pointer;
+	}
+
+	.option:has(input:checked) {
+		background: var(--accent-soft);
+	}
+
+	.missing {
+		margin: 0;
+		padding: 0.5rem;
+		color: var(--danger);
+		font-weight: 600;
+	}
+
+	.option input {
+		width: 1.2rem;
+		height: 1.2rem;
+		margin: 0;
+		accent-color: var(--accent);
+	}
+
+	.option-text {
+		display: flex;
+		flex: 1;
+		flex-direction: column;
+		line-height: 1.3;
+	}
+
+	.option-text .muted {
+		font-size: 0.85rem;
+	}
+
+	section > .hint {
+		margin-inline: 0.25rem;
+		margin-top: 0.6rem;
+		font-size: 0.9rem;
 	}
 
 	.submit {

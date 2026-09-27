@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	estimateOneRepMax,
 	lowerTrainingMax,
+	defaultTrainingMaxSource,
 	parseTestSet,
 	trainingMaxFromTest
 } from './trainingMax';
@@ -166,6 +167,64 @@ describe('parseTestSet', () => {
 
 			// Assert
 			expect(result).toEqual({ ok: false, error: 'Reps må være et heltall fra 1 til 10' });
+		});
+	});
+});
+
+describe('defaultTrainingMaxSource', () => {
+	const lift = { trainingMax: 100, changedAt: '2026-09-20 18:00:00' };
+
+	describe('given no test', () => {
+		it('when choosing, then the current training max is used', () => {
+			// Arrange
+			const test = undefined;
+
+			// Act
+			const source = defaultTrainingMaxSource(lift, test);
+
+			// Assert
+			expect(source).toBe('current');
+		});
+	});
+
+	describe('given a test logged after the training max was changed', () => {
+		it('when choosing, then the test is used', () => {
+			// Arrange
+			const test = { createdAt: '2026-09-27 17:30:00' };
+
+			// Act
+			const source = defaultTrainingMaxSource(lift, test);
+
+			// Assert
+			expect(source).toBe('test');
+		});
+	});
+
+	describe('given the training max was changed after the test, on the same day', () => {
+		it('when choosing, then the newer current training max is used', () => {
+			// Arrange
+			const changedLater = { trainingMax: 100, changedAt: '2026-09-27 19:00:00' };
+			const test = { createdAt: '2026-09-27 17:30:00' };
+
+			// Act
+			const source = defaultTrainingMaxSource(changedLater, test);
+
+			// Assert
+			expect(source).toBe('current');
+		});
+	});
+
+	describe('given no current training max and an older test', () => {
+		it('when choosing, then the test is used since there is nothing else', () => {
+			// Arrange
+			const unset = { trainingMax: 0, changedAt: '2026-09-27 19:00:00' };
+			const test = { createdAt: '2026-09-01 17:30:00' };
+
+			// Act
+			const source = defaultTrainingMaxSource(unset, test);
+
+			// Assert
+			expect(source).toBe('test');
 		});
 	});
 });

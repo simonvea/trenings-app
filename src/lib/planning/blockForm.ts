@@ -1,3 +1,4 @@
+import { parseDecimal } from '$lib/format';
 import { isMonday } from './schedule';
 import {
 	cycleTypes,
@@ -7,10 +8,17 @@ import {
 	type CycleType,
 	type NewBlock,
 	type TrainingDay,
+	type TrainingMaxPlan,
 	type Weekday
 } from './types';
 
-export type BlockFormField = 'name' | 'start_date' | 'days' | 'cycles' | 'assistance';
+export type BlockFormField =
+	| 'name'
+	| 'start_date'
+	| 'days'
+	| 'cycles'
+	| 'assistance'
+	| 'training_max';
 
 export type BlockFormResult =
 	| { ok: true; value: NewBlock }
@@ -56,6 +64,13 @@ const parseAssistance = (data: FormData): AssistancePlan[] => {
 		.filter((a) => a.exerciseId);
 };
 
+// One per lift trained in the block, in training day order
+const parseTrainingMaxes = (data: FormData, days: TrainingDay[]): TrainingMaxPlan[] =>
+	days.map(({ liftId }) => ({
+		liftId,
+		trainingMax: parseDecimal(text(data, `training_max_${liftId}`)) ?? 0
+	}));
+
 const dropUndefined = <T extends object>(obj: T): T =>
 	Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
 
@@ -65,6 +80,7 @@ export const parseBlockForm = (data: FormData): BlockFormResult => {
 	const days = parseDays(data);
 	const cycles = parseCycles(data).map(dropUndefined);
 	const assistance = parseAssistance(data);
+	const trainingMaxes = parseTrainingMaxes(data, days);
 
 	const errors: Partial<Record<BlockFormField, string>> = {};
 
@@ -88,6 +104,10 @@ export const parseBlockForm = (data: FormData): BlockFormResult => {
 	if (assistance.some((a) => !isPositiveInteger(a.sets) || !isPositiveInteger(a.reps)))
 		errors.assistance = 'Sett og reps må være positive heltall';
 
+	// Unknown lifts are already reported under days
+	if (!errors.days && trainingMaxes.some((tm) => !(tm.trainingMax > 0)))
+		errors.training_max = 'Alle løft i blokka trenger en training max over 0';
+
 	if (Object.keys(errors).length > 0) return { ok: false, errors };
 
 	return {
@@ -99,7 +119,8 @@ export const parseBlockForm = (data: FormData): BlockFormResult => {
 			startDate,
 			days,
 			cycles,
-			assistance
+			assistance,
+			trainingMaxes
 		})
 	};
 };
