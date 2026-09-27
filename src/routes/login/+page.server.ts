@@ -21,6 +21,7 @@ export const actions = {
 			path: '/',
 			httpOnly: true,
 			sameSite: 'lax',
+			secure: process.env.NODE_ENV === 'production',
 			maxAge: SESSION_TTL_MS / 1000
 		});
 		redirect(303, safeRedirectTarget(url.searchParams.get('redirectTo')));
