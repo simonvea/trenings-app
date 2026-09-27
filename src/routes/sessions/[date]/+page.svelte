@@ -11,7 +11,7 @@
 
 	let { data, params }: PageProps = $props();
 
-	let { session, mainLift, exercises } = data;
+	const { session, mainLift, exercises } = data;
 	let { date } = params;
 
 	const getDateString = (date: Date) => date.toJSON().slice(0, 10);
@@ -23,7 +23,7 @@
 	const warmupSets = $state(mainLift?.warmupSets.map((s) => ({ ...s, checked: completed })));
 	let supplementalSetsDone = $state(0);
 	let isDone = $derived(
-		supplementalSetsDone == mainLift?.supplemental.sets && sets.every((s) => s.checked)
+		supplementalSetsDone == mainLift?.supplemental.sets && sets?.every((s) => s.checked)
 	);
 	let comment = $state(mainLift?.comment || '');
 	let loading = $state(false);
@@ -43,7 +43,7 @@
 
 	const mainSet = mainLift?.sets[mainLift.sets.length - 1];
 	let suggestedAmrapReps = $state(mainSet?.reps || 0);
-	if (mainSet?.isAmrap) {
+	if (session && mainSet?.isAmrap) {
 		suggestedAmrapReps = getSuggestedAmrapReps(mainSet.weight, session.current_training_max);
 	}
 </script>
@@ -54,7 +54,7 @@
 	<a href={`/sessions/${getDateString(tomorrow)}`}>neste</a>
 </section>
 
-{#if !session}
+{#if !session || !mainLift || !exercises}
 	<p>Ingen økt i dag, {todayName}!</p>
 {:else}
 	{#if completed}
@@ -110,7 +110,7 @@
 										type="tel"
 										name={'set_' + (index + 1) + '_actual_reps'}
 										placeholder={suggestedAmrapReps.toString()}
-										onchange={(e) => (set.checked = !!e.target.value)}
+										onchange={(e) => (set.checked = !!e.currentTarget.value)}
 									/>
 								{:else}
 									<input

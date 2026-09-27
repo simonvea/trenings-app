@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import type { PageServerLoad } from '../$types';
+import type { PageServerLoad } from './$types';
 import type { LiftsDb, TrainingBlockDb, TrainingCycleDb } from '$lib/types';
 import { sql } from '$lib/server/db';
 

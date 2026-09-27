@@ -36,8 +36,8 @@ export function addAssistanceWork({
 	reps,
 	weight
 }: {
-	sessionId: string;
-	exerciseId: string;
+	sessionId: number;
+	exerciseId: number;
 	sets: number;
 	reps: number;
 	weight: number;

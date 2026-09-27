@@ -38,7 +38,7 @@
 		<p>Sist: {history.reps} reps x {history.weight} kg</p>
 	{/if}
 	<div class="exercise">
-		<select {name} onchange={(e) => updateHistory(e.target.value)}>
+		<select {name} onchange={(e) => updateHistory(Number(e.currentTarget.value))}>
 			{#each exercises as exercise (exercise.id)}
 				<option value={exercise.id}>{exercise.name}</option>
 			{/each}

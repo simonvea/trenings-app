@@ -1,7 +1,10 @@
 import { normalizeWeight } from '$lib/core';
 import type {
+	AssistanceExerciseDb,
+	AssistanceWorkDb,
 	LiftsDb,
 	MainLift,
+	MainWorkDb,
 	SupplementalTemplateDb,
 	SupplementalWork,
 	TrainingCycleDb,
@@ -9,7 +12,7 @@ import type {
 	WorkoutSessionsDb
 } from '$lib/types';
 import type { Actions } from '@sveltejs/kit';
-import type { PageServerData } from './$types';
+import type { PageServerLoad } from './$types';
 import { translateLiftName } from '$lib/helpers';
 import { sql } from '$lib/server/db';
 import { addAssistanceWork, completeMainWorkout } from '$lib/server/transactions';
@@ -24,6 +27,11 @@ type SessionDb = WorkoutSessionsDb &
 		liftName: string;
 		session_id: number;
 	};
+
+type SessionHistory = {
+	mainWork: MainWorkDb[];
+	assistanceWork: (AssistanceWorkDb & Pick<AssistanceExerciseDb, 'name' | 'category'>)[];
+};
 
 export const actions = {
 	default: async ({ request }) => {
@@ -106,7 +114,7 @@ export const actions = {
 	}
 } satisfies Actions;
 
-export const load: PageServerData = async ({ params }) => {
+export const load: PageServerLoad = async ({ params }) => {
 	let { date } = params;
 	if (!date) date = 'now';
 
@@ -121,7 +129,22 @@ INNER JOIN week_templates as week on week.id = s.week_template_id
 
 	if (!session) return {};
 
-	const exercises = sql.all`SELECT * FROM assistance_exercises` as AssistanceExcerciseDb[];
+	const exercises = sql.all`SELECT * FROM assistance_exercises` as AssistanceExerciseDb[];
+
+	let history: SessionHistory | undefined;
+
+	if (session.status == 'completed') {
+		history = {
+			mainWork: sql.all`SELECT * FROM main_work
+WHERE session_id = ${session.session_id}
+ORDER BY set_number` as unknown as MainWorkDb[],
+			assistanceWork:
+				sql.all`SELECT assistance_work.*, assistance_exercises.name, assistance_exercises.category FROM assistance_work
+INNER JOIN assistance_exercises ON assistance_exercises.id = assistance_work.exercise_id
+WHERE assistance_work.session_id = ${session.session_id}` as unknown as (AssistanceWorkDb &
+					Pick<AssistanceExerciseDb, 'name' | 'category'>)[]
+		};
+	}
 
 	// TODO: handle non-supplemental weeks
 	const supplemental: SupplementalWork = {
@@ -178,7 +201,7 @@ INNER JOIN week_templates as week on week.id = s.week_template_id
 
 	const title = `Uke ${session.week_number_in_cycle}`;
 
-	return { session, mainLift, title, exercises };
+	return { session, mainLift, title, exercises, history };
 };
 
 function calculateSupplementalWeight({

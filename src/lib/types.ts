@@ -162,7 +162,7 @@ export type SupplementalWorkDb = {
 export type AssistanceWorkDb = {
 	id: number;
 	session_id: number;
-	exercice_id: number;
+	exercise_id: number;
 	sets?: number;
 	reps?: number;
 	weight?: number;
