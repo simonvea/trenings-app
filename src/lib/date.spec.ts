@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, formatDayHeading, formatShortDate, toIsoDate } from './date';
+import { addDays, formatDayHeading, formatShortDate, formatWeekdayShort, toIsoDate } from './date';
 
 describe('toIsoDate', () => {
 	it('when given a local date just after midnight, then it returns that local calendar day', () => {
@@ -61,5 +61,18 @@ describe('formatShortDate', () => {
 
 		// Assert
 		expect(short).toBe('4. okt.');
+	});
+});
+
+describe('formatWeekdayShort', () => {
+	it('when given an iso date, then it returns the abbreviated Norwegian weekday', () => {
+		// Arrange
+		const monday = '2026-09-28';
+
+		// Act
+		const weekday = formatWeekdayShort(monday);
+
+		// Assert
+		expect(weekday).toBe('man.');
 	});
 });

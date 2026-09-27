@@ -3,32 +3,30 @@ import type { PageServerLoad } from './$types';
 import type { LiftsDb, TrainingBlockDb, TrainingCycleDb } from '$lib/types';
 import { sql } from '$lib/server/db';
 
+export type BlockCycle = TrainingCycleDb & { sessions_total: number; sessions_completed: number };
+
 export const load: PageServerLoad = async ({ params }) => {
 	const blockId = params.id;
 
-	const block = sql.get`
-SELECT b.*  FROM training_blocks as b
-INNER JOIN lifts as lift_one on lift_one.id = b.lift_day_1_id
-INNER JOIN lifts as lift_two on lift_two.id = b.lift_day_2_id
-INNER JOIN lifts as lift_three on lift_three.id = b.lift_day_3_id
-INNER JOIN lifts as lift_four on lift_four.id = b.lift_day_4_id
-where b.id = ${blockId}` as TrainingBlockDb;
+	const block = sql.get`SELECT * FROM training_blocks WHERE id = ${blockId}` as
+		| TrainingBlockDb
+		| undefined;
 
-	if (!block) return error(404, 'Not found.');
+	if (!block) error(404, 'Fant ikke blokka');
 
-	const cycles =
-		sql.all`SELECT c.*, supplemental.name as supplemental_name, seventh_week.name as seventh_week_name from cycles as c 
-LEFT JOIN supplemental_templates as supplemental on supplemental.id = c.supplemental_template_id
-LEFT JOIN week_templates as seventh_week on seventh_week.id = c.seventh_week_template_id
-where block_id = ${blockId}
-ORDER BY c.cycle_number_in_block ASC
-` as TrainingCycleDb[];
+	const cycles = sql.all`SELECT c.*, supplemental.name AS supplemental_name,
+		seventh_week.name AS seventh_week_name,
+		COUNT(s.id) AS sessions_total,
+		COUNT(CASE WHEN s.status = 'completed' THEN 1 END) AS sessions_completed
+	FROM cycles AS c
+	LEFT JOIN supplemental_templates AS supplemental ON supplemental.id = c.supplemental_template_id
+	LEFT JOIN week_templates AS seventh_week ON seventh_week.id = c.seventh_week_template_id
+	LEFT JOIN workout_sessions AS s ON s.cycle_id = c.id
+	WHERE c.block_id = ${blockId}
+	GROUP BY c.id
+	ORDER BY c.cycle_number_in_block ASC` as BlockCycle[];
 
-	const lifts = sql.all`SELECT * from lifts` as LiftsDb[];
+	const lifts = sql.all`SELECT * FROM lifts` as LiftsDb[];
 
-	return {
-		block,
-		cycles,
-		lifts
-	};
+	return { title: block.name, block, cycles, lifts };
 };

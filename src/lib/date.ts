@@ -32,3 +32,6 @@ export const formatDayHeading = (iso: string): string =>
 
 export const formatShortDate = (iso: string): string =>
 	parseIsoDate(iso).toLocaleDateString('nb', { day: 'numeric', month: 'short' });
+
+export const formatWeekdayShort = (iso: string): string =>
+	parseIsoDate(iso).toLocaleDateString('nb', { weekday: 'short' });

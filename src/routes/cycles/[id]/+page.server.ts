@@ -15,7 +15,9 @@ type Cycle = TrainingCycleDb &
 
 export type Session = WeekTemplateDb & {
 	lift_name: string;
-	id: string;
+	session_id: number;
+	planned_date: string;
+	status: 'planned' | 'completed' | 'skipped';
 	lift_id: number;
 	week_number_in_cycle: number;
 	current_training_max: number;
@@ -32,7 +34,7 @@ where c.id = ${cycleId}` as Cycle;
 	if (!cycle) error(404, 'Not found.');
 
 	const sessions =
-		sql.all`SELECT s.id, s.lift_id, s.week_number_in_cycle, l.name AS lift_name, l.current_training_max, w.*  FROM workout_sessions as s
+		sql.all`SELECT w.*, s.id AS session_id, s.planned_date, s.status, s.lift_id, s.week_number_in_cycle, l.name AS lift_name, l.current_training_max FROM workout_sessions as s
             LEFT JOIN lifts as l ON l.id = s.lift_id
             LEFT JOIN week_templates as w ON w.id = s.week_template_id
             WHERE cycle_id = ${cycleId}
@@ -40,5 +42,7 @@ where c.id = ${cycleId}` as Cycle;
 ` as Session[];
 	const lifts = sql.all`SELECT * FROM lifts` as LiftsDb[];
 
-	return { cycle, sessions, lifts };
+	const title = `Syklus ${cycle.cycle_number_in_block}`;
+
+	return { title, cycle, sessions, lifts };
 };
