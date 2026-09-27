@@ -185,3 +185,47 @@ a:focus-visible {
 	color: var(--text-muted);
 	opacity: 0.55;
 }
+
+.table-wrap {
+	overflow-x: auto;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow);
+}
+
+.table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.table th,
+.table td {
+	padding: 0.6rem 0.9rem;
+	text-align: left;
+	border-bottom: 1px solid var(--border);
+	vertical-align: middle;
+}
+
+.table tr:last-child td {
+	border-bottom: 0;
+}
+
+.table th {
+	background: var(--surface-2);
+	color: var(--text-muted);
+	font-size: 0.8rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+.section-title {
+	margin: 0 0.25rem 0.6rem;
+	font-size: 0.8rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+}

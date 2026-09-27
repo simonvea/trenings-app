@@ -5,7 +5,7 @@ import type { LiftsDb } from '$lib/types';
 import { completeBlock, listBlocks, updateTrainingMaxes } from '$lib/planning/db.server';
 
 export const load: PageServerLoad = () => ({
-	title: 'Admin',
+	title: 'Planlegging',
 	lifts: sql.all`SELECT * FROM lifts ORDER BY id` as LiftsDb[],
 	blocks: listBlocks()
 });
