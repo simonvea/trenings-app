@@ -101,6 +101,10 @@
 			<p class="error">{form.blockError}</p>
 		{/if}
 	</section>
+
+	<form method="POST" action={resolve('/logout')}>
+		<button type="submit" class="btn btn-secondary">Logg ut</button>
+	</form>
 </div>
 
 <style>

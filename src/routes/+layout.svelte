@@ -1,269 +1,182 @@
 <script lang="ts">
+	import '../app.css';
 	import type { LayoutProps } from './$types';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import favicon from '$lib/assets/favicon.svg';
+	import { today } from '$lib/date';
 
 	let { children }: LayoutProps = $props();
-	let menuOpen = $state(false);
-	const today = new Date().toJSON().slice(0, 10);
 
-	const appTitle = page.data.title;
-
-	function toggleMenu() {
-		menuOpen = !menuOpen;
-	}
-
-	function closeMenu() {
-		menuOpen = false;
-	}
+	const title = $derived(page.data.title ?? 'Trening');
+	const showNav = $derived(page.url.pathname !== '/login');
+	// Re-read on every navigation so an app left open overnight links to the new day
+	const todayDate = $derived.by(() => {
+		void page.url;
+		return today();
+	});
+	const current = (active: boolean): 'page' | undefined => (active ? 'page' : undefined);
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<title>{title === 'Trening' ? title : `${title} · Trening`}</title>
 </svelte:head>
 
-<div class="app">
-	<header class="header">
-		<button class="hamburger" onclick={toggleMenu} aria-label="Menu">
-			<span class:open={menuOpen}></span>
-			<span class:open={menuOpen}></span>
-			<span class:open={menuOpen}></span>
-		</button>
-		<div class="header-spacer"></div>
-		<h1 class="app-title">{appTitle}</h1>
-	</header>
+{#snippet navLinks(withIcons: boolean)}
+	<a href={resolve('/')} aria-current={current(page.url.pathname === '/')}>
+		{#if withIcons}
+			<svg viewBox="0 0 24 24" aria-hidden="true">
+				<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />
+			</svg>
+		{/if}
+		<span>Hjem</span>
+	</a>
+	<a
+		href={resolve('/sessions/[date]', { date: todayDate })}
+		aria-current={current(page.url.pathname.startsWith('/sessions'))}
+	>
+		{#if withIcons}
+			<svg viewBox="0 0 24 24" aria-hidden="true">
+				<path d="M2 10h2v4H2zM20 10h2v4h-2zM5 7h3v10H5zM16 7h3v10h-3zM8 11h8v2H8z" />
+			</svg>
+		{/if}
+		<span>Økt</span>
+	</a>
+	<a href={resolve('/admin')} aria-current={current(page.url.pathname.startsWith('/admin'))}>
+		{#if withIcons}
+			<svg viewBox="0 0 24 24" aria-hidden="true">
+				<path
+					d="M7 2v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zM5 9h14v11H5z"
+				/>
+			</svg>
+		{/if}
+		<span>Planlegg</span>
+	</a>
+{/snippet}
 
-	<aside class="sidebar" class:open={menuOpen}>
-		<nav class="nav">
-			<a href={resolve('/')} onclick={closeMenu}>Hjem</a>
-			<a href={resolve('/sessions/[date]', { date: today })} onclick={closeMenu}>Dagens økt</a>
-			<a href={resolve('/admin')} onclick={closeMenu}>Admin</a>
-			<form method="POST" action={resolve('/logout')}>
-				<button type="submit">Logg ut</button>
-			</form>
-		</nav>
-	</aside>
+<header class="header">
+	<div class="header-inner">
+		<span class="title">{title}</span>
+		{#if showNav}
+			<nav class="top-nav" aria-label="Hovedmeny">{@render navLinks(false)}</nav>
+		{/if}
+	</div>
+</header>
 
-	<!-- Overlay -->
-	{#if menuOpen}
-		<div class="overlay" onclick={closeMenu} onkeydown={closeMenu} role="button" tabindex="0"></div>
-	{/if}
+<main class="main" class:with-tabbar={showNav}>
+	{@render children?.()}
+</main>
 
-	<main class="main">
-		{@render children?.()}
-	</main>
-</div>
+{#if showNav}
+	<nav class="tabbar" aria-label="Hovedmeny">{@render navLinks(true)}</nav>
+{/if}
 
 <style>
-	:global(body) {
-		margin: 0;
-		padding: 0;
-		font-family:
-			-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-		overflow-x: hidden;
-	}
-
-	.app {
-		display: flex;
-		flex-direction: column;
-		height: 100vh;
-		height: 100dvh;
-		background: #f5f5f5;
-	}
-
-	/* Header */
 	.header {
+		position: sticky;
+		top: 0;
+		z-index: 10;
+		background: var(--header-bg);
+		color: var(--on-header);
+		border-bottom: 1px solid var(--border);
+		padding-top: env(safe-area-inset-top);
+	}
+
+	.header-inner {
 		display: flex;
 		align-items: center;
-		padding: 0 1rem;
-		height: 56px;
-		background: #2563eb;
-		color: white;
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-		position: relative;
-		z-index: 100;
+		gap: 1rem;
+		max-width: 1100px;
+		height: var(--header-height);
+		margin: 0 auto;
+		padding: 0 max(1rem, env(safe-area-inset-right)) 0 max(1rem, env(safe-area-inset-left));
 	}
 
-	.app-title {
-		font-size: 1.25rem;
-		font-weight: 600;
-		margin: 0;
-	}
-
-	.header-spacer {
-		width: 40px;
-	}
-
-	/* Hamburger */
-	.hamburger {
-		background: none;
-		border: none;
-		cursor: pointer;
-		padding: 0;
-		width: 40px;
-		height: 40px;
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		gap: 5px;
-	}
-
-	.hamburger span {
-		display: block;
-		width: 24px;
-		height: 2px;
-		background: white;
-		transition: all 0.3s ease;
-		border-radius: 2px;
-	}
-
-	.hamburger span:nth-child(1).open {
-		transform: translateY(7px) rotate(45deg);
-	}
-
-	.hamburger span:nth-child(2).open {
-		opacity: 0;
-	}
-
-	.hamburger span:nth-child(3).open {
-		transform: translateY(-7px) rotate(-45deg);
-	}
-
-	/* Sidebar */
-	.sidebar {
-		position: fixed;
-		top: 56px;
-		left: -280px;
-		width: 280px;
-		height: calc(100vh - 56px);
-		height: calc(100dvh - 56px);
-		background: white;
-		box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-		transition: left 0.3s ease;
-		z-index: 99;
-		overflow-y: auto;
-	}
-
-	.sidebar.open {
-		left: 0;
-	}
-
-	.nav {
-		display: flex;
-		flex-direction: column;
-		padding: 1rem 0;
-	}
-
-	.nav a {
-		padding: 1rem 1.5rem;
-		color: #333;
-		text-decoration: none;
-		transition: background 0.2s ease;
-		border-left: 3px solid transparent;
-	}
-
-	.nav button {
-		width: 100%;
-		padding: 1rem 1.5rem;
-		background: none;
-		border: none;
-		border-left: 3px solid transparent;
-		color: #333;
-		font: inherit;
-		text-align: left;
-		cursor: pointer;
-	}
-
-	.nav button:hover,
-	.nav a:hover {
-		background: #f0f0f0;
-	}
-
-	.nav a:active {
-		background: #e0e0e0;
-	}
-
-	.nav a:focus {
-		outline: 2px solid #2563eb;
-		outline-offset: -2px;
-	}
-
-	/* Overlay */
-	.overlay {
-		position: fixed;
-		top: 56px;
-		left: 0;
-		right: 0;
-		bottom: 60px;
-		background: rgba(0, 0, 0, 0.5);
-		z-index: 98;
-		cursor: pointer;
-	}
-
-	/* Main Content */
-	.main {
+	.title {
 		flex: 1;
-		overflow-y: auto;
-		overflow-x: hidden;
-		padding: 1rem;
-		-webkit-overflow-scrolling: touch;
+		font-size: 1.15rem;
+		font-weight: 700;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
-	/* Footer */
-	.footer {
-		display: flex;
-		justify-content: space-between;
-		padding: 0.75rem 1rem;
-		height: 60px;
-		background: white;
-		border-top: 1px solid #e0e0e0;
-		box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
+	.top-nav {
+		display: none;
+		gap: 0.25rem;
 	}
 
-	.footer-btn {
+	.top-nav a {
+		padding: 0.4rem 0.8rem;
+		border-radius: var(--radius-sm);
+		color: inherit;
+		text-decoration: none;
+		font-weight: 600;
+		opacity: 0.85;
+	}
+
+	.top-nav a:hover,
+	.top-nav a[aria-current='page'] {
+		opacity: 1;
+		background: rgb(255 255 255 / 0.16);
+	}
+
+	.main {
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 1rem max(1rem, env(safe-area-inset-right)) 2rem max(1rem, env(safe-area-inset-left));
+	}
+
+	.main.with-tabbar {
+		padding-bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 1.5rem);
+	}
+
+	.tabbar {
+		position: fixed;
+		inset: auto 0 0 0;
+		z-index: 10;
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		height: calc(var(--tabbar-height) + env(safe-area-inset-bottom));
+		padding-bottom: env(safe-area-inset-bottom);
+		background: var(--surface);
+		border-top: 1px solid var(--border);
+	}
+
+	.tabbar a {
 		display: flex;
+		flex-direction: column;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0.5rem 1rem;
-		background: none;
-		border: 1px solid #d0d0d0;
-		border-radius: 8px;
-		color: #333;
-		font-size: 0.95rem;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		font-family: inherit;
+		justify-content: center;
+		gap: 2px;
+		color: var(--text-muted);
+		text-decoration: none;
+		font-size: 0.75rem;
+		font-weight: 600;
 	}
 
-	.footer-btn:hover {
-		background: #f5f5f5;
-		border-color: #2563eb;
-		color: #2563eb;
+	.tabbar a[aria-current='page'] {
+		color: var(--accent);
 	}
 
-	.footer-btn:active {
-		transform: scale(0.95);
-		background: #e8e8e8;
+	.tabbar svg {
+		width: 24px;
+		height: 24px;
+		fill: currentColor;
 	}
 
-	/* PWA Safe Areas */
-	@supports (padding: max(0px)) {
-		.header {
-			padding-left: max(1rem, env(safe-area-inset-left));
-			padding-right: max(1rem, env(safe-area-inset-right));
+	@media (min-width: 768px) {
+		.top-nav {
+			display: flex;
 		}
 
-		.main {
-			padding-left: max(1rem, env(safe-area-inset-left));
-			padding-right: max(1rem, env(safe-area-inset-right));
+		.tabbar {
+			display: none;
 		}
 
-		.footer {
-			padding-left: max(1rem, env(safe-area-inset-left));
-			padding-right: max(1rem, env(safe-area-inset-right));
-			padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+		.main.with-tabbar {
+			padding-bottom: 2rem;
 		}
 	}
 </style>
