@@ -136,6 +136,7 @@
 <!-- Delegated from the fields inside; the form itself is not a control -->
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <form
+	action="?/complete"
 	method="POST"
 	onkeydown={focusNextOnEnter}
 	use:enhance={() => {
@@ -160,6 +161,7 @@
 	}}
 >
 	<input type="hidden" name="session_id" value={sessionId} />
+	<input type="hidden" name="training_max" value={trainingMax} />
 	<fieldset>
 		{#if warmupSets.length > 0}
 			<section class="card group">

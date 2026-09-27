@@ -147,6 +147,7 @@ export type MainWorkDb = {
 	actual_reps?: number;
 	is_amrap?: boolean;
 	supplemental_done: boolean;
+	training_max?: number | null;
 	rpe?: number;
 	notes?: string;
 };

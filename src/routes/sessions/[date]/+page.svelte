@@ -7,6 +7,7 @@
 	import type { PageProps } from './$types';
 	import SessionForm from './session-form.svelte';
 	import SessionSummary from './session-summary.svelte';
+	import TrainingMaxCheck from './training-max-check.svelte';
 
 	let { data, params }: PageProps = $props();
 
@@ -79,6 +80,13 @@
 		</header>
 
 		{#if data.history}
+			{#key session.session_id}
+				<TrainingMaxCheck
+					check={data.tmCheck}
+					liftId={session.lift_id}
+					trainingMax={session.current_training_max}
+				/>
+			{/key}
 			<SessionSummary
 				{mainLift}
 				completedDate={session.session_completed_date ?? undefined}

@@ -1,3 +1,4 @@
+import { normalizeWeight } from './core';
 import { parseDecimal } from './format';
 
 export type TestSet = { weight: number; reps: number };
@@ -50,4 +51,53 @@ export const defaultTrainingMaxSource = (
 	if (!test) return 'current';
 	if (!lift.trainingMax) return 'test';
 	return test.createdAt > lift.changedAt ? 'test' : 'current';
+};
+
+export type TopSetResult = {
+	percentage: number;
+	plannedWeight: number;
+	plannedReps: number;
+	actualReps: number;
+	isAmrap: boolean;
+};
+
+export type TrainingMaxCheck =
+	| { kind: 'none' }
+	| { kind: 'missedReps'; actualReps: number; minimumReps: number; lowered: number }
+	| { kind: 'askIfHeavy'; lowered: number }
+	| { kind: 'changed'; trainingMax: number };
+
+// Wendler: missing the minimum reps on the + set, or a 100 % set in the 7th week that
+// felt too heavy, means the training max is too heavy.
+export const trainingMaxCheck = ({
+	trainingMax,
+	sessionTrainingMax,
+	topSet
+}: {
+	trainingMax: number;
+	// Stored since migration 004; older sessions fall back to the planned weight
+	sessionTrainingMax?: number;
+	topSet: TopSetResult;
+}): TrainingMaxCheck => {
+	const missedReps = topSet.isAmrap && topSet.actualReps < topSet.plannedReps;
+	const atFullTrainingMax = !topSet.isAmrap && topSet.percentage >= 1;
+	if (!missedReps && !atFullTrainingMax) return { kind: 'none' };
+
+	const changed =
+		sessionTrainingMax === undefined
+			? // The planned weight came from the training max at the time. Rounding to 2.5 kg
+				// hides small changes, which is why the training max itself is stored now.
+				normalizeWeight(trainingMax * topSet.percentage) !== topSet.plannedWeight
+			: sessionTrainingMax !== trainingMax;
+	if (changed) return { kind: 'changed', trainingMax };
+
+	const lowered = lowerTrainingMax(trainingMax);
+	return missedReps
+		? {
+				kind: 'missedReps',
+				actualReps: topSet.actualReps,
+				minimumReps: topSet.plannedReps,
+				lowered
+			}
+		: { kind: 'askIfHeavy', lowered };
 };

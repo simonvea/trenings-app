@@ -1,7 +1,9 @@
 import { normalizeWeight } from '$lib/core';
 import { isIsoDate } from '$lib/date';
 import { parseDecimal } from '$lib/format';
+import { updateTrainingMaxes } from '$lib/planning/db.server';
 import { supplementalWeight } from '$lib/supplemental';
+import { lowerTrainingMax, trainingMaxCheck, type TrainingMaxCheck } from '$lib/trainingMax';
 import type {
 	AssistanceExerciseDb,
 	AssistanceWorkDb,
@@ -14,7 +16,7 @@ import type {
 	WeekTemplateDb,
 	WorkoutSessionsDb
 } from '$lib/types';
-import { error, type Actions } from '@sveltejs/kit';
+import { error, fail, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { translateLiftName } from '$lib/helpers';
 import { sql } from '$lib/server/db';
@@ -41,7 +43,7 @@ type SessionHistory = {
 };
 
 export const actions = {
-	default: async ({ request }) => {
+	complete: async ({ request }) => {
 		const data = await request.formData();
 
 		const sessionId = Number(data.get('session_id'));
@@ -55,6 +57,8 @@ export const actions = {
 		const isAmrap = data.get('top_set_amrap') == 'true';
 		const hasDoneSupplemental = data.get('supplemental_sets_done') == 'true';
 		const notes = String(data.get('comment') ?? '').trim();
+		// The one the weights on the phone were computed from, which may be older than the current
+		const trainingMax = parseDecimal(String(data.get('training_max') ?? ''));
 
 		// Assistance work, one slot per planned exercise
 		const assistance = data.getAll('assistance_slot').map((slot) => ({
@@ -76,7 +80,8 @@ export const actions = {
 			actualReps: isAmrap ? actualReps : plannedReps,
 			isAmrap,
 			hasDoneSupplemental,
-			notes
+			notes,
+			trainingMax
 		});
 
 		for (const { exerciseId, weight, reps } of assistance) {
@@ -91,6 +96,23 @@ export const actions = {
 		}
 
 		return { success: true };
+	},
+
+	lowerTrainingMax: async ({ request }) => {
+		const data = await request.formData();
+		const liftId = Number(data.get('lift_id'));
+		const from = Number(data.get('from'));
+
+		const lift = sql.get`SELECT current_training_max FROM lifts WHERE id = ${liftId}` as
+			| Pick<LiftsDb, 'current_training_max'>
+			| undefined;
+		if (!lift) return fail(400, { tmError: 'Fant ikke løftet' });
+		// A double tap or a resent form must not lower it twice
+		if (lift.current_training_max !== from)
+			return fail(409, { tmError: 'Training max er allerede endret' });
+
+		updateTrainingMaxes([{ liftId, trainingMax: lowerTrainingMax(from) }]);
+		return { tmLowered: true };
 	}
 } satisfies Actions;
 
@@ -123,6 +145,7 @@ WHERE block_id = ${session.block_id} AND lift_id = ${session.lift_id}
 ORDER BY position` as PlannedAssistance[];
 
 	let history: SessionHistory | undefined;
+	let tmCheck: TrainingMaxCheck = { kind: 'none' };
 
 	if (session.status == 'completed') {
 		history = {
@@ -135,6 +158,23 @@ INNER JOIN assistance_exercises ON assistance_exercises.id = assistance_work.exe
 WHERE assistance_work.session_id = ${session.session_id}` as unknown as (AssistanceWorkDb &
 					Pick<AssistanceExerciseDb, 'name' | 'category'>)[]
 		};
+
+		const topSet = history.mainWork.at(-1);
+		if (topSet)
+			tmCheck = trainingMaxCheck({
+				trainingMax: session.current_training_max,
+				sessionTrainingMax: topSet.training_max ?? undefined,
+				topSet: {
+					percentage:
+						topSet.set_number === 4 && session.set_4_percentage
+							? session.set_4_percentage
+							: session.set_3_percentage,
+					plannedWeight: topSet.planned_weight,
+					plannedReps: topSet.planned_reps,
+					actualReps: topSet.actual_reps ?? topSet.planned_reps,
+					isAmrap: Boolean(topSet.is_amrap)
+				}
+			});
 	}
 
 	const supplemental: SupplementalWork = {
@@ -207,5 +247,14 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 
 	const title = 'Økt';
 
-	return { session, mainLift, title, exercises, plannedAssistance, history, ...neighbours };
+	return {
+		session,
+		mainLift,
+		title,
+		exercises,
+		plannedAssistance,
+		history,
+		tmCheck,
+		...neighbours
+	};
 };

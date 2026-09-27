@@ -28,7 +28,7 @@
 				<span>
 					{work.planned_reps}{work.is_amrap ? '+' : ''} × {formatKg(work.planned_weight)}
 				</span>
-				<strong>{work.actual_reps} reps</strong>
+				<strong>{work.actual_reps} {work.actual_reps === 1 ? 'rep' : 'reps'}</strong>
 			</li>
 		{/each}
 	</ul>

@@ -4,6 +4,7 @@ import {
 	lowerTrainingMax,
 	defaultTrainingMaxSource,
 	parseTestSet,
+	trainingMaxCheck,
 	trainingMaxFromTest
 } from './trainingMax';
 
@@ -167,6 +168,135 @@ describe('parseTestSet', () => {
 
 			// Assert
 			expect(result).toEqual({ ok: false, error: 'Reps må være et heltall fra 1 til 10' });
+		});
+	});
+});
+
+describe('trainingMaxCheck', () => {
+	const amrapWeek = {
+		trainingMax: 100,
+		topSet: { percentage: 0.85, plannedWeight: 85, plannedReps: 5, actualReps: 5, isAmrap: true }
+	};
+	const seventhWeek = {
+		trainingMax: 100,
+		topSet: { percentage: 1, plannedWeight: 100, plannedReps: 1, actualReps: 1, isAmrap: false }
+	};
+
+	describe('given an AMRAP set that reached the minimum reps', () => {
+		it('when checking, then there is nothing to do', () => {
+			// Arrange
+			const session = amrapWeek;
+
+			// Act
+			const check = trainingMaxCheck(session);
+
+			// Assert
+			expect(check).toEqual({ kind: 'none' });
+		});
+	});
+
+	describe('given an AMRAP set below the minimum reps', () => {
+		it('when checking, then a 10 % lower training max is suggested', () => {
+			// Arrange
+			const session = { ...amrapWeek, topSet: { ...amrapWeek.topSet, actualReps: 3 } };
+
+			// Act
+			const check = trainingMaxCheck(session);
+
+			// Assert
+			expect(check).toEqual({ kind: 'missedReps', actualReps: 3, minimumReps: 5, lowered: 90 });
+		});
+	});
+
+	describe('given a 7th week top set at the full training max', () => {
+		it('when checking, then the lifter is asked whether it felt too heavy', () => {
+			// Arrange
+			const session = seventhWeek;
+
+			// Act
+			const check = trainingMaxCheck(session);
+
+			// Assert
+			expect(check).toEqual({ kind: 'askIfHeavy', lowered: 90 });
+		});
+	});
+
+	describe('given a training max changed after the session', () => {
+		it('when checking, then nothing is suggested so it is not lowered twice', () => {
+			// Arrange
+			const session = {
+				trainingMax: 90,
+				topSet: { ...amrapWeek.topSet, actualReps: 3 }
+			};
+
+			// Act
+			const check = trainingMaxCheck(session);
+
+			// Assert
+			expect(check).toEqual({ kind: 'changed', trainingMax: 90 });
+		});
+	});
+	describe('given a PR week AMRAP set at 100 % below the minimum reps', () => {
+		it('when checking, then a lower training max is suggested', () => {
+			// Arrange
+			const session = {
+				trainingMax: 100,
+				topSet: { percentage: 1, plannedWeight: 100, plannedReps: 3, actualReps: 2, isAmrap: true }
+			};
+
+			// Act
+			const check = trainingMaxCheck(session);
+
+			// Assert
+			expect(check).toEqual({ kind: 'missedReps', actualReps: 2, minimumReps: 3, lowered: 90 });
+		});
+	});
+
+	describe('given a plain top set below 100 %', () => {
+		it('when checking, then there is nothing to ask', () => {
+			// Arrange
+			const session = {
+				trainingMax: 100,
+				topSet: {
+					percentage: 0.9,
+					plannedWeight: 90,
+					plannedReps: 5,
+					actualReps: 5,
+					isAmrap: false
+				}
+			};
+
+			// Act
+			const check = trainingMaxCheck(session);
+
+			// Assert
+			expect(check).toEqual({ kind: 'none' });
+		});
+	});
+
+	describe('given the stored session training max differs from the current one', () => {
+		it('when the change is too small to show in the rounded weights, then it is still seen as changed', () => {
+			// Arrange
+			const session = { ...seventhWeek, trainingMax: 99, sessionTrainingMax: 100 };
+
+			// Act
+			const check = trainingMaxCheck(session);
+
+			// Assert
+			expect(check).toEqual({ kind: 'changed', trainingMax: 99 });
+		});
+	});
+
+	describe('given the stored session training max equals the current one', () => {
+		it('when checking a 7th week, then the question is asked', () => {
+			// Arrange
+			const session = { ...seventhWeek, sessionTrainingMax: 100 };
+
+			// Act
+			const check = trainingMaxCheck(session);
+
+			// Assert
+			expect(check).toEqual({ kind: 'askIfHeavy', lowered: 90 });
 		});
 	});
 });
