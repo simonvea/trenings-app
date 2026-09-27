@@ -57,7 +57,9 @@ export type LiftsDb = {
 
 export type TrainingBlockDb = {
 	id: number;
-	name?: string;
+	name: string;
+	program_template_id?: number;
+	start_date: string;
 	training_day_1: string;
 	training_day_2: string;
 	training_day_3: string;
@@ -69,7 +71,7 @@ export type TrainingBlockDb = {
 	goals?: string;
 	notes?: string;
 	created_at?: string;
-	completed_date: string;
+	completed_date?: string;
 };
 
 export type TrainingCycleDb = {
@@ -114,7 +116,7 @@ export type SupplementalTemplateDb = {
 	description?: string;
 	sets: number;
 	reps: number;
-	weight_calculation: 'first_set' | 'fixed_percentage' | 'custom';
+	weight_calculation: 'first_set' | 'second_set' | 'fixed_percentage' | 'custom';
 	fixed_percentage?: number;
 	notes?: string;
 	created_at: string;
