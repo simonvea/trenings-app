@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy, untrack } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import { formatShortDate, today } from '$lib/date';
 	import { formatKg } from '$lib/format';
 	import { estimateOneRepMax, parseTestSet, trainingMaxFromTest } from '$lib/trainingMax';
@@ -8,8 +9,14 @@
 
 	const { data, form }: PageProps = $props();
 
-	// The lifts never change while the page is open; only the first one is preselected
-	let liftId = $state(untrack(() => data.lifts[0]?.id));
+	// Links from a session preselect its lift with ?lift=<id>; the lifts never change while
+	// the page is open, so this only runs once
+	const initialLiftId = (): number | undefined => {
+		const requested = Number(page.url.searchParams.get('lift'));
+		return data.lifts.find((l) => l.id === requested)?.id ?? data.lifts[0]?.id;
+	};
+	let liftId = $state(untrack(initialLiftId));
+	let lastSaved = $state<string>();
 	let weight = $state('');
 	let reps = $state('');
 	let saving = $state(false);
@@ -18,13 +25,19 @@
 	const lift = $derived(data.lifts.find((l) => l.id === liftId));
 	const parsed = $derived(parseTestSet({ weight, reps }));
 	const oneDecimal = (kg: number): number => Math.round(kg * 10) / 10;
+	const signedKg = (kg: number): string =>
+		`${kg > 0 ? '+' : kg < 0 ? '−' : '±'}${formatKg(Math.abs(kg))}`;
 
-	// Deleting takes a second tap, so scrolling the list with a thumb cannot remove a test
+	// Deleting takes a second tap, so scrolling the list with a thumb cannot remove a test.
+	// The confirm button appears under the finger, so a quick double tap is ignored.
 	let confirmingId = $state<number>();
+	let armedAt = 0;
 	let confirmTimer: ReturnType<typeof setTimeout> | undefined;
 	let deleteFailed = $state(false);
-	function askToDelete(id: number): void {
+	function askToDelete(id: number, event: MouseEvent): void {
 		confirmingId = id;
+		// Keyboard activation reports detail 0 and cannot double tap by accident
+		armedAt = event.detail > 0 ? Date.now() : 0;
 		clearTimeout(confirmTimer);
 		confirmTimer = setTimeout(() => (confirmingId = undefined), 4000);
 	}
@@ -46,6 +59,8 @@
 			formData.set('test_date', today());
 			saving = true;
 			failed = undefined;
+			const summary =
+				lift && parsed.ok ? `${lift.name}, TM ${formatKg(trainingMaxFromTest(parsed.value))}` : '';
 			return async ({ result, update }) => {
 				saving = false;
 				if (result.type === 'error') {
@@ -54,6 +69,7 @@
 				}
 				await update({ reset: false });
 				if (result.type === 'success') {
+					lastSaved = summary;
 					weight = '';
 					reps = '';
 				}
@@ -111,7 +127,10 @@
 					<strong class="num">{formatKg(trainingMaxFromTest(parsed.value))}</strong>
 				</span>
 				{#if lift?.trainingMax}
-					<span class="muted">Nå: {formatKg(lift.trainingMax)}</span>
+					<span class="muted num">
+						Nå: {formatKg(lift.trainingMax)}
+						({signedKg(trainingMaxFromTest(parsed.value) - lift.trainingMax)})
+					</span>
 				{/if}
 			{:else if weight && reps}
 				<span class="error">{parsed.error}</span>
@@ -126,7 +145,7 @@
 		{#if failed ?? form?.error}
 			<p class="error" role="alert">{failed ?? form?.error}</p>
 		{:else if form?.saved && !weight && !reps}
-			<p class="ok" role="status">Lagret.</p>
+			<p class="ok" role="status">Lagret{lastSaved ? `: ${lastSaved}` : '.'}</p>
 		{/if}
 	</form>
 
@@ -138,16 +157,24 @@
 			<ul class="card list">
 				{#each data.tests as test (test.id)}
 					<li>
-						<span class="when muted">{formatShortDate(test.test_date)}</span>
 						<span class="what">
-							<strong>{test.liftName}</strong>
-							<span class="muted num">{test.reps} × {formatKg(test.weight)}</span>
+							<span class="title">
+								<strong>{test.liftName}</strong>
+								<span class="muted">{formatShortDate(test.test_date)}</span>
+							</span>
+							<span class="muted num">
+								{test.reps} × {formatKg(test.weight)} ·
+								<strong class="tm-value">TM {formatKg(test.training_max)}</strong>
+							</span>
 						</span>
-						<span class="tm-value num">TM {formatKg(test.training_max)}</span>
 						<form
 							method="POST"
 							action="?/delete"
-							use:enhance={() => {
+							use:enhance={({ cancel }) => {
+								if (Date.now() - armedAt < 400) {
+									cancel();
+									return;
+								}
 								deleteFailed = false;
 								failed = undefined;
 								return async ({ result, update }) => {
@@ -162,13 +189,15 @@
 						>
 							<input type="hidden" name="test_id" value={test.id} />
 							{#if confirmingId === test.id}
-								<button class="btn confirm-delete" type="submit">Slett?</button>
+								<button class="btn confirm-delete" type="submit" {@attach (el) => el.focus()}>
+									Slett?
+								</button>
 							{:else}
 								<button
 									class="delete"
 									type="button"
 									aria-label="Slett test {test.liftName} {formatShortDate(test.test_date)}"
-									onclick={() => askToDelete(test.id)}
+									onclick={(event) => askToDelete(test.id, event)}
 								>
 									<svg viewBox="0 0 24 24" aria-hidden="true">
 										<path
@@ -336,21 +365,30 @@
 		border-top: 1px solid var(--border);
 	}
 
-	.when {
-		width: 3.5rem;
-		flex-shrink: 0;
-		font-size: 0.9rem;
-	}
-
 	.what {
 		display: flex;
 		flex: 1;
 		flex-direction: column;
+		min-width: 0;
+	}
+
+	.title {
+		display: flex;
+		align-items: baseline;
+		gap: 0.5rem;
+	}
+
+	.title .muted {
+		font-size: 0.9rem;
 	}
 
 	.tm-value {
-		font-weight: 700;
+		color: var(--text);
 		white-space: nowrap;
+	}
+
+	.list form {
+		flex-shrink: 0;
 	}
 
 	.delete {
