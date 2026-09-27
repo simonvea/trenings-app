@@ -47,6 +47,12 @@ export const actions = {
 		const data = await request.formData();
 
 		const sessionId = Number(data.get('session_id'));
+		const saved = sql.get`SELECT status FROM workout_sessions WHERE id = ${sessionId}` as
+			| Pick<WorkoutSessionsDb, 'status'>
+			| undefined;
+		if (!saved) return fail(404, { error: 'Fant ikke økta' });
+		// A retry after lost signal may reach a session that was already saved
+		if (saved.status === 'completed') return { success: true };
 		// The last main set is the one recorded: set 3, or set 4 in a 7th week
 		const setNumber = Number(data.get('top_set_number'));
 

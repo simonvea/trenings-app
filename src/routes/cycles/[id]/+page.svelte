@@ -34,7 +34,7 @@
 		const weight = supplementalWeight(
 			{ weightCalculation: cycle.weight_calculation, fixedPercentage: cycle.fixed_percentage },
 			{
-				trainingMax: session.current_training_max,
+				trainingMax: session.training_max,
 				set1Percentage: session.set_1_percentage,
 				set2Percentage: session.set_2_percentage
 			}
@@ -72,9 +72,7 @@
 						{#each setsOf(session) as set, index (index)}
 							<li>
 								<span>{repsLabel(set.reps)} ×</span>
-								<span
-									>{formatKg(normalizeWeight(set.percentage * session.current_training_max))}</span
-								>
+								<span>{formatKg(normalizeWeight(set.percentage * session.training_max))}</span>
 							</li>
 						{/each}
 						{#if hasSupplemental}

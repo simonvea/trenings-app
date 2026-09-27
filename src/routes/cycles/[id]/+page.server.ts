@@ -20,7 +20,8 @@ export type Session = WeekTemplateDb & {
 	status: 'planned' | 'completed' | 'skipped';
 	lift_id: number;
 	week_number_in_cycle: number;
-	current_training_max: number;
+	// The one the session was done at when completed, otherwise the lift's current one
+	training_max: number;
 };
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -31,10 +32,11 @@ export const load: PageServerLoad = async ({ params }) => {
      LEFT JOIN supplemental_templates AS st on st.id = c.supplemental_template_id
 where c.id = ${cycleId}` as Cycle;
 
-	if (!cycle) error(404, 'Not found.');
+	if (!cycle) error(404, 'Fant ikke syklusen');
 
 	const sessions =
-		sql.all`SELECT w.*, s.id AS session_id, s.planned_date, s.status, s.lift_id, s.week_number_in_cycle, l.name AS lift_name, l.current_training_max FROM workout_sessions as s
+		sql.all`SELECT w.*, s.id AS session_id, s.planned_date, s.status, s.lift_id, s.week_number_in_cycle, l.name AS lift_name,
+            COALESCE((SELECT mw.training_max FROM main_work AS mw WHERE mw.session_id = s.id ORDER BY mw.id DESC LIMIT 1), l.current_training_max) AS training_max FROM workout_sessions as s
             LEFT JOIN lifts as l ON l.id = s.lift_id
             LEFT JOIN week_templates as w ON w.id = s.week_template_id
             WHERE cycle_id = ${cycleId}

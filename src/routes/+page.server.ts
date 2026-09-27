@@ -16,7 +16,7 @@ type UpcomingSessionRow = Pick<WorkoutSessionsDb, 'id' | 'planned_date' | 'statu
 	lift_name: string;
 	week_name: string;
 	cycle_type: string;
-	current_training_max: number;
+	training_max: number;
 	set_3_percentage: number;
 	set_3_reps: number;
 	set_4_percentage: number | null;
@@ -26,8 +26,9 @@ type UpcomingSessionRow = Pick<WorkoutSessionsDb, 'id' | 'planned_date' | 'statu
 export const load: PageServerLoad = async () => {
 	// A week back, so missed sessions can still be reached. The server clock may be UTC,
 	// so the client decides which of these are past, today and upcoming.
+	// A completed session keeps the training max it was done at.
 	const rows = sql.all`SELECT s.id, s.planned_date, s.status, l.name AS lift_name,
-		l.current_training_max, w.name AS week_name, c.cycle_type, w.set_3_percentage, w.set_3_reps,
+		COALESCE((SELECT mw.training_max FROM main_work AS mw WHERE mw.session_id = s.id ORDER BY mw.id DESC LIMIT 1), l.current_training_max) AS training_max, w.name AS week_name, c.cycle_type, w.set_3_percentage, w.set_3_reps,
 		w.set_4_percentage, w.set_4_reps
 	FROM workout_sessions AS s
 	INNER JOIN lifts AS l ON l.id = s.lift_id
@@ -53,7 +54,7 @@ export const load: PageServerLoad = async () => {
 			isSeventhWeek: row.cycle_type === '7th week',
 			topSet: {
 				reps: Math.abs(reps),
-				weight: normalizeWeight(row.current_training_max * percentage),
+				weight: normalizeWeight(row.training_max * percentage),
 				isAmrap: reps < 0
 			}
 		};
