@@ -95,14 +95,13 @@
 	const amrapTarget = topSet.isAmrap ? suggestedAmrapReps(topSet.weight, trainingMax) : topSet.reps;
 
 	const allSetsDone = $derived(
-		[...warmupSets, ...workSets].every((s) => s.done || s.recordsReps) &&
+		workSets.every((s) => s.done || s.recordsReps) &&
 			(!topSet.recordsReps || amrapReps !== '') &&
 			supplementalDone.every(Boolean)
 	);
-	const totalCount = $derived(warmupSets.length + workSets.length + supplementalDone.length);
+	const totalCount = $derived(workSets.length + supplementalDone.length);
 	const doneCount = $derived(
-		warmupSets.filter((s) => s.done).length +
-			workSets.filter((s) => (s.recordsReps ? amrapReps !== '' : s.done)).length +
+		workSets.filter((s) => (s.recordsReps ? amrapReps !== '' : s.done)).length +
 			supplementalDone.filter(Boolean).length
 	);
 	const hasSupplemental = start.mainLift.supplemental.sets > 0;
