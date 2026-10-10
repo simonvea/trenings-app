@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { normalizeWeight } from '$lib/core';
 import { translateLiftName } from '$lib/helpers';
-import { listBlocks } from '$lib/planning/db.server';
+import { listBlocks, listCycleProgress } from '$lib/planning/db.server';
 import { sql } from '$lib/server/db';
 import type { LiftName, WorkoutSessionsDb } from '$lib/types';
 
@@ -60,5 +60,9 @@ export const load: PageServerLoad = async () => {
 		};
 	});
 
-	return { blocks: listBlocks(), upcoming };
+	const blocks = listBlocks();
+	const activeBlock = blocks.find((b) => !b.completed_date);
+	const activeCycles = activeBlock ? listCycleProgress(activeBlock.id) : [];
+
+	return { blocks, activeCycles, upcoming };
 };

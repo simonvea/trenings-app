@@ -176,6 +176,25 @@ export function listBlocks(): BlockSummary[] {
 		ORDER BY b.start_date DESC` as BlockSummary[];
 }
 
+export type CycleProgress = {
+	id: number;
+	cycle_number_in_block: number;
+	cycle_type: string;
+	sessions_total: number;
+	sessions_completed: number;
+};
+
+export function listCycleProgress(blockId: number): CycleProgress[] {
+	return sql.all`SELECT c.id, c.cycle_number_in_block, c.cycle_type,
+			COUNT(s.id) AS sessions_total,
+			COUNT(CASE WHEN s.status = 'completed' THEN 1 END) AS sessions_completed
+		FROM cycles AS c
+		LEFT JOIN workout_sessions AS s ON s.cycle_id = c.id
+		WHERE c.block_id = ${blockId}
+		GROUP BY c.id
+		ORDER BY c.cycle_number_in_block` as CycleProgress[];
+}
+
 export function completeBlock(blockId: number): void {
 	sql.run`UPDATE training_blocks SET completed_date = date('now') WHERE id = ${blockId}`;
 }

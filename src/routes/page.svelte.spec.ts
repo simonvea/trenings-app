@@ -22,6 +22,7 @@ describe('/+page.svelte', () => {
 			const todayDate = today();
 			const data = {
 				blocks: [activeBlock],
+				activeCycles: [],
 				upcoming: [
 					{
 						id: 5,
@@ -52,7 +53,7 @@ describe('/+page.svelte', () => {
 	describe('given no session planned today', () => {
 		it('when rendered, then today is shown as a rest day', async () => {
 			// Arrange
-			const data = { blocks: [activeBlock], upcoming: [] };
+			const data = { blocks: [activeBlock], activeCycles: [], upcoming: [] };
 
 			// Act
 			render(Page, { data, params: {}, form: undefined });
@@ -65,7 +66,7 @@ describe('/+page.svelte', () => {
 	describe('given no active block', () => {
 		it('when rendered, then testing the training max is offered before the block list', async () => {
 			// Arrange
-			const data = { blocks: [], upcoming: [] };
+			const data = { blocks: [], activeCycles: [], upcoming: [] };
 
 			// Act
 			render(Page, { data, params: {}, form: undefined });
@@ -86,6 +87,7 @@ describe('/+page.svelte', () => {
 			// Arrange
 			const data = {
 				blocks: [activeBlock],
+				activeCycles: [],
 				upcoming: [
 					{
 						id: 9,
@@ -118,6 +120,7 @@ describe('/+page.svelte', () => {
 			// Arrange
 			const data = {
 				blocks: [{ ...activeBlock, end_date: addDays(today(), -1) }],
+				activeCycles: [],
 				upcoming: []
 			};
 
@@ -148,6 +151,7 @@ describe('/+page.svelte', () => {
 			};
 			const data = {
 				blocks: [activeBlock],
+				activeCycles: [],
 				upcoming: [
 					{ ...session, id: 1, status: 'completed' as const, liftName: 'Benkpress' as const },
 					{ ...session, id: 2, status: 'planned' as const, planned_date: addDays(todayDate, 2) }
@@ -159,6 +163,39 @@ describe('/+page.svelte', () => {
 
 			// Assert
 			await expect.element(page.getByText(/Neste: Knebøy/)).toBeInTheDocument();
+		});
+	});
+
+	describe('given an active block with one finished and one ongoing cycle', () => {
+		it('when rendered, then each cycle shows its own session progress', async () => {
+			// Arrange
+			const data = {
+				blocks: [activeBlock],
+				activeCycles: [
+					{
+						id: 1,
+						cycle_number_in_block: 1,
+						cycle_type: 'leader',
+						sessions_total: 12,
+						sessions_completed: 12
+					},
+					{
+						id: 2,
+						cycle_number_in_block: 2,
+						cycle_type: 'anchor',
+						sessions_total: 12,
+						sessions_completed: 5
+					}
+				],
+				upcoming: []
+			};
+
+			// Act
+			render(Page, { data, params: {}, form: undefined });
+
+			// Assert
+			await expect.element(page.getByText('12/12')).toBeInTheDocument();
+			await expect.element(page.getByText('5/12')).toBeInTheDocument();
 		});
 	});
 });

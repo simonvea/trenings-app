@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
+	import { translateCycleType } from '$lib/helpers';
 	import { formatDayHeading, formatShortDate, formatWeekdayShort, today } from '$lib/date';
 	import { formatKg } from '$lib/format';
 	import type { PageProps } from './$types';
@@ -133,6 +134,28 @@
 				<span style:width="{percent(activeBlock.sessions_completed, activeBlock.sessions_total)}%"
 				></span>
 			</span>
+			<ol class="cycles">
+				{#each data.activeCycles as cycle (cycle.id)}
+					{@const done =
+						cycle.sessions_total > 0 && cycle.sessions_completed === cycle.sessions_total}
+					<li class:done>
+						<span class="mark" aria-hidden="true">
+							{#if done}
+								<svg viewBox="0 0 24 24"
+									><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" /></svg
+								>
+							{:else}
+								{cycle.cycle_number_in_block}
+							{/if}
+						</span>
+						<span class="cycle-name">{translateCycleType(cycle.cycle_type)}</span>
+						<span class="progress small">
+							<span style:width="{percent(cycle.sessions_completed, cycle.sessions_total)}%"></span>
+						</span>
+						<span class="muted num count">{cycle.sessions_completed}/{cycle.sessions_total}</span>
+					</li>
+				{/each}
+			</ol>
 		</a>
 	{:else}
 		<p class="card empty">
@@ -304,6 +327,71 @@
 		display: block;
 		height: 100%;
 		background: var(--accent);
+	}
+
+	.cycles {
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+		margin: 0.6rem 0 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.cycles li {
+		display: flex;
+		align-items: center;
+		gap: 0.7rem;
+	}
+
+	.mark {
+		display: grid;
+		place-items: center;
+		flex-shrink: 0;
+		width: 1.75rem;
+		height: 1.75rem;
+		border-radius: 50%;
+		background: var(--surface-2);
+		font-size: 0.85rem;
+		font-weight: 700;
+	}
+
+	.mark svg {
+		width: 18px;
+		height: 18px;
+		fill: currentColor;
+	}
+
+	.cycles li.done .mark {
+		background: var(--success-soft);
+		color: var(--success);
+	}
+
+	.cycles li.done .cycle-name {
+		color: var(--text-muted);
+		text-decoration: line-through;
+	}
+
+	.cycle-name {
+		width: 4rem;
+		flex-shrink: 0;
+		font-weight: 600;
+	}
+
+	.progress.small {
+		flex: 1;
+		height: 6px;
+		margin: 0;
+	}
+
+	.cycles li.done .progress span {
+		background: var(--success);
+	}
+
+	.count {
+		min-width: 2.5rem;
+		text-align: right;
+		font-size: 0.9rem;
 	}
 
 	.empty {
