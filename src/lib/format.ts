@@ -21,6 +21,23 @@ export const parseWholeNumber = (value: string): number | null => {
 	return /^\d+$/.test(trimmed) ? Number(trimmed) : null;
 };
 
+const twoDigits = (n: number): string => String(n).padStart(2, '0');
+
+export const formatClock = (ms: number): string => {
+	const seconds = Math.floor(ms / 1000);
+	const hours = Math.floor(seconds / 3600);
+	const minutes = Math.floor(seconds / 60) % 60;
+	const secs = twoDigits(seconds % 60);
+	return hours > 0 ? `${hours}:${twoDigits(minutes)}:${secs}` : `${minutes}:${secs}`;
+};
+
+export const formatDuration = (seconds: number): string => {
+	const minutes = Math.round(seconds / 60);
+	const hours = Math.floor(minutes / 60);
+	if (hours === 0) return `${minutes} min`;
+	return minutes % 60 === 0 ? `${hours} t` : `${hours} t ${minutes % 60} min`;
+};
+
 const signed = (n: number, text: string): string => `${n > 0 ? '+' : n < 0 ? '−' : '±'}${text}`;
 
 export const formatChange = (from: number, to: number): string => {

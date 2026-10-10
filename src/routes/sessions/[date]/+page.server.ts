@@ -48,6 +48,8 @@ type SessionHistory = {
 	assistanceWork: (AssistanceWorkDb & Pick<AssistanceExerciseDb, 'name' | 'category'>)[];
 };
 
+const maxDurationSeconds = 6 * 60 * 60;
+
 export const actions = {
 	complete: async ({ request }) => {
 		const data = await request.formData();
@@ -76,6 +78,10 @@ export const actions = {
 		// The phone's calendar day; the server clock may be UTC and date a late session a day early
 		const sentDate = String(data.get('completed_date') ?? '');
 		const completedDate = isIsoDate(sentDate) ? sentDate : today();
+		// 0 measured nothing, and a timer left running overnight is not a session length worth keeping
+		const sentDuration = parseWholeNumber(String(data.get('duration_seconds') ?? ''));
+		const durationSeconds =
+			sentDuration && sentDuration <= maxDurationSeconds ? sentDuration : null;
 
 		// Assistance work, one slot per planned exercise
 		const assistance = data.getAll('assistance_slot').map((slot) => ({
@@ -99,7 +105,8 @@ export const actions = {
 			hasDoneSupplemental,
 			notes,
 			trainingMax,
-			completedDate
+			completedDate,
+			durationSeconds
 		});
 
 		for (const { exerciseId, weight, reps } of assistance) {

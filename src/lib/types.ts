@@ -136,6 +136,7 @@ export type WorkoutSessionsDb = {
 	completed_date?: string;
 	status: 'planned' | 'completed' | 'skipped';
 	notes?: string;
+	duration_seconds: number | null;
 	created_at: string;
 };
 

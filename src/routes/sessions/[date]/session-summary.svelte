@@ -1,17 +1,19 @@
 <script lang="ts">
 	import { formatDayHeading } from '$lib/date';
-	import { formatKg, formatReps, formatSupplemental } from '$lib/format';
+	import { formatDuration, formatKg, formatReps, formatSupplemental } from '$lib/format';
 	import type { AssistanceExerciseDb, AssistanceWorkDb, MainLift, MainWorkDb } from '$lib/types';
 
 	type Props = {
 		mainLift: MainLift;
 		completedDate: string | undefined;
+		durationSeconds: number | null;
 		notes: string | null;
 		mainWork: MainWorkDb[];
 		assistanceWork: (AssistanceWorkDb & Pick<AssistanceExerciseDb, 'name'>)[];
 	};
 
-	const { mainLift, completedDate, notes, mainWork, assistanceWork }: Props = $props();
+	const { mainLift, completedDate, durationSeconds, notes, mainWork, assistanceWork }: Props =
+		$props();
 
 	const supplementalDone = $derived(mainWork.some((w) => w.supplemental_done));
 </script>
@@ -19,6 +21,9 @@
 <section class="card summary">
 	<p class="done-banner">
 		Fullført{completedDate ? ` ${formatDayHeading(completedDate).toLowerCase()}` : ''}
+		{#if durationSeconds !== null}
+			<span class="num">· {formatDuration(durationSeconds)}</span>
+		{/if}
 	</p>
 
 	<h2 class="section-title">Arbeidssett</h2>

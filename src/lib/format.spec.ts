@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { formatChange, formatReps, parseDecimal, parseWholeNumber } from './format';
+import {
+	formatChange,
+	formatClock,
+	formatDuration,
+	formatReps,
+	parseDecimal,
+	parseWholeNumber
+} from './format';
 
 describe('parseDecimal', () => {
 	it('when the value uses a Norwegian decimal comma, then it parses as a number', () => {
@@ -99,5 +106,65 @@ describe('formatChange', () => {
 			// Assert
 			expect(text).toBe('+94 kg');
 		});
+	});
+});
+
+describe('formatClock', () => {
+	it('when under a minute, then it shows minutes and padded seconds', () => {
+		// Act
+		const text = formatClock(7_000);
+
+		// Assert
+		expect(text).toBe('0:07');
+	});
+
+	it('when over an hour, then it shows hours, minutes and seconds', () => {
+		// Act
+		const text = formatClock((3600 + 2 * 60 + 10) * 1000);
+
+		// Assert
+		expect(text).toBe('1:02:10');
+	});
+
+	it('when exactly an hour has passed, then the hours are shown', () => {
+		// Act
+		const text = formatClock(3_600_000);
+
+		// Assert
+		expect(text).toBe('1:00:00');
+	});
+
+	it('when part of a second has passed, then the second is not counted yet', () => {
+		// Act
+		const text = formatClock(102_999);
+
+		// Assert
+		expect(text).toBe('1:42');
+	});
+});
+
+describe('formatDuration', () => {
+	it('when under an hour, then it shows whole minutes', () => {
+		// Act
+		const text = formatDuration(52 * 60 + 40);
+
+		// Assert
+		expect(text).toBe('53 min');
+	});
+
+	it('when it rounds up to a whole hour, then no zero minutes are shown', () => {
+		// Act
+		const text = formatDuration(59 * 60 + 40);
+
+		// Assert
+		expect(text).toBe('1 t');
+	});
+
+	it('when over an hour, then it shows hours and minutes', () => {
+		// Act
+		const text = formatDuration(65 * 60);
+
+		// Assert
+		expect(text).toBe('1 t 5 min');
 	});
 });

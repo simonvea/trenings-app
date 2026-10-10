@@ -102,6 +102,7 @@
 			<SessionSummary
 				{mainLift}
 				completedDate={session.session_completed_date ?? undefined}
+				durationSeconds={session.duration_seconds}
 				notes={session.session_notes}
 				mainWork={data.history.mainWork}
 				assistanceWork={data.history.assistanceWork}

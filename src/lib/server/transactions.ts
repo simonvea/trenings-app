@@ -11,7 +11,8 @@ export function completeMainWorkout({
 	hasDoneSupplemental,
 	notes,
 	trainingMax,
-	completedDate
+	completedDate,
+	durationSeconds
 }: {
 	sessionId: number;
 	setNumber: number;
@@ -24,6 +25,7 @@ export function completeMainWorkout({
 	notes: string;
 	trainingMax: number | null;
 	completedDate: string;
+	durationSeconds: number | null;
 }) {
 	const amrap = isAmrap ? 1 : 0;
 	const supplementalDone = hasDoneSupplemental ? 1 : 0;
@@ -32,7 +34,7 @@ export function completeMainWorkout({
      VALUES (${sessionId},${setNumber},${plannedWeight},${plannedReps},${actualWeight},${actualReps},${amrap},${supplementalDone},${trainingMax})
 `;
 
-	sql.run`UPDATE workout_sessions SET status = 'completed', completed_date = ${completedDate}, notes = ${notes || null} WHERE id = ${sessionId}`;
+	sql.run`UPDATE workout_sessions SET status = 'completed', completed_date = ${completedDate}, notes = ${notes || null}, duration_seconds = ${durationSeconds} WHERE id = ${sessionId}`;
 }
 
 export function addAssistanceWork({

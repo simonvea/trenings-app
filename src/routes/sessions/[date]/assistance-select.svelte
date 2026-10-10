@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import { browserStorage, readDraft, writeDraft } from '$lib/draft';
-	import { formatKg } from '$lib/format';
+	import { formatKg, parseWholeNumber } from '$lib/format';
 	import type { AssistanceExerciseDb } from '$lib/types';
 
 	type Props = {
@@ -9,6 +9,7 @@
 		draftKey: string;
 		exercises: AssistanceExerciseDb[];
 		planned: { exerciseId: number; sets: number; reps: number };
+		onSetLogged: () => void;
 	};
 	type LastTime = { sets: number; reps: number; weight: number };
 	type Draft = { exerciseId: number; weight: string; sets: string[] };
@@ -25,7 +26,7 @@
 		);
 	};
 
-	const { name, draftKey, exercises, planned }: Props = $props();
+	const { name, draftKey, exercises, planned, onSetLogged }: Props = $props();
 
 	// Start from the plan; exercise and number of sets can still be changed during the session.
 	const plannedSets = (): string[] => Array.from({ length: planned.sets }, () => '');
@@ -36,6 +37,11 @@
 	let lastTime: LastTime | undefined = $state();
 	let loading = $state(true);
 	let setList: HTMLElement | undefined = $state();
+
+	// The server drops sets without reps, so only a set with reps counts as logged
+	const hasReps = (value: string): boolean => (parseWholeNumber(value) ?? 0) > 0;
+	// Correcting the reps of a set already logged is not a new set
+	let repsAtFocus = '';
 
 	const totalReps = $derived(sets.reduce((total, set) => total + Number(set || 0), 0));
 
@@ -56,6 +62,7 @@
 		const next = sets.findIndex((set) => set === '');
 		if (next === -1) return;
 		sets[next] = String(planned.reps);
+		onSetLogged();
 	}
 
 	async function addSet(): Promise<void> {
@@ -139,6 +146,10 @@
 						name={name + '-set'}
 						placeholder={String(planned.reps)}
 						bind:value={sets[index]}
+						onfocus={() => (repsAtFocus = sets[index])}
+						onchange={() => {
+							if (!hasReps(repsAtFocus) && hasReps(sets[index])) onSetLogged();
+						}}
 					/>
 				</label>
 			</li>

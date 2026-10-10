@@ -3,7 +3,22 @@
 	import { enhance } from '$app/forms';
 	import { today } from '$lib/date';
 	import { browserStorage, clearDrafts, readDraft, writeDraft } from '$lib/draft';
-	import { formatKg, formatReps, formatSupplemental } from '$lib/format';
+	import {
+		formatClock,
+		formatKg,
+		formatReps,
+		formatSupplemental,
+		parseWholeNumber
+	} from '$lib/format';
+	import {
+		durationSeconds,
+		logSet,
+		restMs,
+		restoreTimer,
+		startTimer,
+		totalMs,
+		type SessionTimer
+	} from '$lib/sessionTimer';
 	import { suggestedAmrapReps } from '$lib/trainingMax';
 	import type { AssistanceExerciseDb, MainLift } from '$lib/types';
 	import type { PlannedAssistance } from './+page.server';
@@ -37,6 +52,11 @@
 	// An incomplete session needs a second tap, so a stray thumb cannot finish it early
 	let confirmingEarlyFinish = $state(false);
 	let confirmTimer: ReturnType<typeof setTimeout> | undefined;
+	let timer: SessionTimer = $state({ kind: 'idle' });
+	// Resetting also needs a second tap, so a stray thumb on the clock cannot wipe it
+	let confirmingReset = $state(false);
+	let resetTimer: ReturnType<typeof setTimeout> | undefined;
+	let now = $state(Date.now());
 
 	type Draft = {
 		warmup: boolean[];
@@ -44,6 +64,8 @@
 		supplemental: boolean[];
 		amrapReps: string;
 		comment: string;
+		// Checked on its own, so a missing or broken timer does not cost the ticks
+		timer?: unknown;
 	};
 	const draftKey = `session-${sessionId}`;
 	const isBooleans = (value: unknown, length: number): boolean =>
@@ -72,9 +94,19 @@
 			draft.supplemental.forEach((done, i) => (supplementalDone[i] = done));
 			amrapReps = draft.amrapReps;
 			comment = draft.comment;
+			timer = restoreTimer(draft.timer, today());
 		}
 		restored = true;
-		return () => clearTimeout(confirmTimer);
+		// The interval is paused while the phone sleeps; catch up as soon as the page is back
+		const onVisible = (): void => {
+			now = Date.now();
+		};
+		document.addEventListener('visibilitychange', onVisible);
+		return () => {
+			clearTimeout(confirmTimer);
+			clearTimeout(resetTimer);
+			document.removeEventListener('visibilitychange', onVisible);
+		};
 	});
 
 	$effect(() => {
@@ -84,9 +116,47 @@
 			work: workSets.map((s) => s.done),
 			supplemental: [...supplementalDone],
 			amrapReps,
-			comment
+			comment,
+			timer
 		} satisfies Draft);
 	});
+
+	$effect(() => {
+		if (timer.kind !== 'running') return;
+		now = Date.now();
+		const tick = setInterval(() => (now = Date.now()), 1000);
+		return () => clearInterval(tick);
+	});
+
+	const rest = $derived(restMs(timer, now));
+	const total = $derived(totalMs(timer, now));
+
+	function logSetNow(): void {
+		timer = logSet(timer, Date.now());
+	}
+
+	function resetOnSecondTap(): void {
+		clearTimeout(resetTimer);
+		if (confirmingReset) {
+			timer = { kind: 'idle' };
+			confirmingReset = false;
+			return;
+		}
+		confirmingReset = true;
+		resetTimer = setTimeout(() => (confirmingReset = false), 4000);
+	}
+
+	// Correcting the reps of a set already logged is not a new set; 0 reps is a missed set, so it counts
+	let amrapAtFocus = '';
+	function logAmrapWhenFirstEntered(): void {
+		if (parseWholeNumber(amrapAtFocus) === null && parseWholeNumber(amrapReps) !== null)
+			logSetNow();
+	}
+
+	// Unticking a set is a correction, not a new set, so it leaves the rest running
+	function logWhenChecked(event: Event & { currentTarget: HTMLInputElement }): void {
+		if (event.currentTarget.checked) logSetNow();
+	}
 
 	const topSet = start.mainLift.sets[start.mainLift.sets.length - 1];
 
@@ -161,13 +231,19 @@
 >
 	<input type="hidden" name="session_id" value={sessionId} />
 	<input type="hidden" name="training_max" value={trainingMax} />
+	<input type="hidden" name="duration_seconds" value={durationSeconds(timer) ?? ''} />
 	<fieldset>
 		{#if warmupSets.length > 0}
 			<section class="card group">
 				<h2 class="section-title">Oppvarming</h2>
 				{#each warmupSets as set, index (index)}
 					<label class="set warmup" class:done={set.done}>
-						<input class="visually-hidden" type="checkbox" bind:checked={set.done} />
+						<input
+							class="visually-hidden"
+							type="checkbox"
+							bind:checked={set.done}
+							onchange={logWhenChecked}
+						/>
 						<span class="reps num">{set.reps}</span>
 						<span class="times">×</span>
 						<span class="weight num">{formatKg(set.weight)}</span>
@@ -195,6 +271,8 @@
 							name="top_set_actual_reps"
 							placeholder="–"
 							bind:value={amrapReps}
+							onfocus={() => (amrapAtFocus = amrapReps)}
+							onchange={logAmrapWhenFirstEntered}
 						/>
 					</label>
 					<p class="hint">
@@ -208,7 +286,12 @@
 					</p>
 				{:else}
 					<label class="set" class:done={set.done}>
-						<input class="visually-hidden" type="checkbox" bind:checked={set.done} />
+						<input
+							class="visually-hidden"
+							type="checkbox"
+							bind:checked={set.done}
+							onchange={logWhenChecked}
+						/>
 						<span class="reps num">{set.reps}</span>
 						<span class="times">×</span>
 						<span class="weight num">{formatKg(set.weight)}</span>
@@ -238,6 +321,7 @@
 								class="visually-hidden"
 								type="checkbox"
 								bind:checked={supplementalDone[index]}
+								onchange={logWhenChecked}
 							/>
 							<span class="visually-hidden">Sett</span>
 							{index + 1}
@@ -264,6 +348,7 @@
 							draftKey={`${draftKey}-${slot}`}
 							{exercises}
 							planned={{ exerciseId: planned.exercise_id, sets: planned.sets, reps: planned.reps }}
+							onSetLogged={logSetNow}
 						/>
 					</div>
 				{/each}
@@ -287,11 +372,34 @@
 	<div class="submit-bar">
 		{#if saveError}
 			<p class="error save-error" role="alert">{saveError}</p>
+		{:else if rest === undefined || total === undefined}
+			<button
+				type="button"
+				class="btn btn-secondary"
+				onclick={() => (timer = startTimer(timer, Date.now()))}
+			>
+				Start økt
+			</button>
 		{:else}
-			<span class="progress num" class:all-done={allSetsDone}>
-				<span class="bar-lift">{mainLift.name}:</span>
-				{doneCount} av {totalCount} sett
-			</span>
+			<button
+				type="button"
+				class="clock"
+				class:confirm={confirmingReset}
+				onclick={resetOnSecondTap}
+			>
+				{#if confirmingReset}
+					<span class="rest">Nullstill tid?</span>
+					<span class="progress">Trykk igjen for å nullstille</span>
+				{:else}
+					<span class="rest num" role="timer">Pause {formatClock(rest)}</span>
+					<span class="progress num" class:all-done={allSetsDone}>
+						<span class="phrase">Totalt {formatClock(total)} ·</span>
+						<span class="phrase"
+							>{doneCount} av {totalCount} <span class="sets-word">sett</span></span
+						>
+					</span>
+				{/if}
+			</button>
 		{/if}
 		<button
 			class="btn"
@@ -476,9 +584,38 @@
 		box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
 	}
 
+	.clock {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		min-width: 0;
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.clock.confirm .rest {
+		color: var(--danger);
+	}
+
+	.rest {
+		font-size: 1.35rem;
+		font-weight: 800;
+		line-height: 1.2;
+	}
+
 	.progress {
 		color: var(--text-muted);
+		font-size: 0.875rem;
 		font-weight: 600;
+	}
+
+	.phrase {
+		white-space: nowrap;
 	}
 
 	.progress.all-done {
@@ -501,9 +638,9 @@
 		white-space: nowrap;
 	}
 
-	/* The lift is in the page heading; on narrow phones the bar needs the room */
+	/* On narrow phones the timer needs the room */
 	@media (max-width: 359px) {
-		.bar-lift {
+		.sets-word {
 			display: none;
 		}
 

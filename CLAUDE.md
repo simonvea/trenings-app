@@ -24,7 +24,8 @@ The app uses SQLite with a comprehensive schema for tracking 5/3/1 powerlifting 
 - `lifts` - Main lifts with training maxes: Squat, Bench, Deadlift, OHP, plus Barbell Row as an alternative (a block picks 4)
 - `training_blocks` - Training phases with scheduled workout days
 - `cycles` - Training cycles: leader/anchor are 3 weeks, a 7th week is 1 week
-- `workout_sessions` - Individual workout sessions linked to cycles and lifts
+- `workout_sessions` - Individual workout sessions linked to cycles and lifts. `duration_seconds` is
+  timed on the phone from session start to the last logged set; rest between sets is not stored
 - `week_templates` - Percentage/rep schemes for different week types (5+, 3+, 5/3/1+, Deload)
 
 **Supporting Tables:**
