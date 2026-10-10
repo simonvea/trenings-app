@@ -1,9 +1,9 @@
 import { parseDecimal } from '$lib/format';
+import { parseAssistanceForm } from './assistanceForm';
 import { isMonday } from './schedule';
 import {
 	cycleTypes,
 	weekdays,
-	type AssistancePlan,
 	type CyclePlan,
 	type CycleType,
 	type NewBlock,
@@ -48,22 +48,6 @@ const parseCycles = (data: FormData): CyclePlan[] => {
 	);
 };
 
-const parseAssistance = (data: FormData): AssistancePlan[] => {
-	const lifts = texts(data, 'assistance_lift');
-	const positions = texts(data, 'assistance_position');
-	const sets = texts(data, 'assistance_sets');
-	const reps = texts(data, 'assistance_reps');
-	return texts(data, 'assistance_exercise')
-		.map((exercise, i) => ({
-			liftId: Number(lifts[i]),
-			position: Number(positions[i]),
-			exerciseId: Number(exercise),
-			sets: Number(sets[i]),
-			reps: Number(reps[i])
-		}))
-		.filter((a) => a.exerciseId);
-};
-
 // One per lift trained in the block, in training day order
 const parseTrainingMaxes = (data: FormData, days: TrainingDay[]): TrainingMaxPlan[] =>
 	days.map(({ liftId }) => ({
@@ -79,7 +63,7 @@ export const parseBlockForm = (data: FormData): BlockFormResult => {
 	const startDate = text(data, 'start_date');
 	const days = parseDays(data);
 	const cycles = parseCycles(data).map(dropUndefined);
-	const assistance = parseAssistance(data);
+	const assistance = parseAssistanceForm(data);
 	const trainingMaxes = parseTrainingMaxes(data, days);
 
 	const errors: Partial<Record<BlockFormField, string>> = {};
@@ -101,14 +85,13 @@ export const parseBlockForm = (data: FormData): BlockFormResult => {
 	else if (cycles.some((c) => c.type === '7th week' && !c.seventhWeekTemplateId))
 		errors.cycles = 'En 7. uke må ha en ukemal (f.eks. Deload)';
 
-	if (assistance.some((a) => !isPositiveInteger(a.sets) || !isPositiveInteger(a.reps)))
-		errors.assistance = 'Sett og reps må være positive heltall';
+	if (!assistance.ok) errors.assistance = assistance.error;
 
 	// Unknown lifts are already reported under days
 	if (!errors.days && trainingMaxes.some((tm) => !(tm.trainingMax > 0)))
 		errors.training_max = 'Alle løft i blokka trenger en training max over 0';
 
-	if (Object.keys(errors).length > 0) return { ok: false, errors };
+	if (!assistance.ok || Object.keys(errors).length > 0) return { ok: false, errors };
 
 	return {
 		ok: true,
@@ -119,7 +102,7 @@ export const parseBlockForm = (data: FormData): BlockFormResult => {
 			startDate,
 			days,
 			cycles,
-			assistance,
+			assistance: assistance.value,
 			trainingMaxes
 		})
 	};

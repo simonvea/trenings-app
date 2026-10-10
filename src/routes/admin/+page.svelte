@@ -105,6 +105,12 @@
 							<tr>
 								<td>
 									<a href={resolve('/blocks/[id]', { id: String(block.id) })}>{block.name}</a>
+									<a
+										class="edit"
+										href={resolve('/admin/blocks/[id]/edit', { id: String(block.id) })}
+									>
+										Rediger
+									</a>
 								</td>
 								<td>{block.template_name ?? '–'}</td>
 								<td class="num">{formatDate(block.start_date)}</td>
@@ -233,6 +239,11 @@
 		padding: 0.3rem 0.8rem;
 		font-size: 0.875rem;
 		white-space: nowrap;
+	}
+
+	.edit {
+		margin-left: 0.75rem;
+		font-size: 0.85rem;
 	}
 
 	.confirm {

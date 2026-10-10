@@ -28,21 +28,21 @@ type TemplateCycleRow = {
 	cycle_type: CycleType;
 	seventh_week_template_id: number | null;
 };
-type TemplateAssistanceRow = {
-	program_template_id: number;
+type AssistanceRow = {
 	lift_id: number;
 	position: number;
 	exercise_id: number;
 	sets: number;
 	reps: number;
 };
+type TemplateAssistanceRow = AssistanceRow & { program_template_id: number };
 
 const toCyclePlan = (row: TemplateCycleRow, supplementalTemplateId?: number): CyclePlan =>
 	row.cycle_type === '7th week'
 		? { type: row.cycle_type, seventhWeekTemplateId: row.seventh_week_template_id ?? undefined }
 		: { type: row.cycle_type, supplementalTemplateId };
 
-const toAssistancePlan = (row: TemplateAssistanceRow): AssistancePlan => ({
+const toAssistancePlan = (row: AssistanceRow): AssistancePlan => ({
 	liftId: row.lift_id,
 	position: row.position,
 	exerciseId: row.exercise_id,
@@ -111,10 +111,7 @@ export function createBlock(block: NewBlock, cycles: PlannedCycle[]): number {
 
 		writeTrainingMaxes(block.trainingMaxes);
 
-		for (const a of block.assistance) {
-			sql.run`INSERT INTO block_assistance (block_id, lift_id, position, exercise_id, sets, reps)
-				VALUES (${blockId}, ${a.liftId}, ${a.position}, ${a.exerciseId}, ${a.sets}, ${a.reps})`;
-		}
+		for (const a of block.assistance) insertAssistance(blockId, a);
 
 		for (const c of cycles) {
 			const cycle = sql.run`INSERT INTO cycles
@@ -130,6 +127,28 @@ export function createBlock(block: NewBlock, cycles: PlannedCycle[]): number {
 		}
 
 		return blockId;
+	});
+}
+
+function insertAssistance(blockId: number, a: AssistancePlan): void {
+	sql.run`INSERT INTO block_assistance (block_id, lift_id, position, exercise_id, sets, reps)
+		VALUES (${blockId}, ${a.liftId}, ${a.position}, ${a.exerciseId}, ${a.sets}, ${a.reps})`;
+}
+
+export function loadBlockAssistance(blockId: number): AssistancePlan[] {
+	const rows = sql.all`SELECT lift_id, position, exercise_id, sets, reps FROM block_assistance
+		WHERE block_id = ${blockId} ORDER BY lift_id, position` as AssistanceRow[];
+	return rows.map(toAssistancePlan);
+}
+
+/** Replaces the block's planned assistance. Logged sessions keep their own assistance_work. */
+export function replaceBlockAssistance(blockId: number, assistance: AssistancePlan[]): void {
+	transaction(() => {
+		const block = sql.get`SELECT id FROM training_blocks WHERE id = ${blockId}`;
+		assert(block, `Unknown block ${blockId}`);
+
+		sql.run`DELETE FROM block_assistance WHERE block_id = ${blockId}`;
+		for (const a of assistance) insertAssistance(blockId, a);
 	});
 }
 

@@ -4,6 +4,8 @@
 	import { formatShortDate, localDateOfUtcTimestamp, today } from '$lib/date';
 	import { formatChange, formatKg } from '$lib/format';
 	import { translateCycleType, translateDay, translateLiftName } from '$lib/helpers';
+	import AssistanceTable from '$lib/planning/assistance-table.svelte';
+	import { assistanceSlots } from '$lib/planning/assistanceForm';
 	import { mondayAfter, planBlock } from '$lib/planning/schedule';
 	import { defaultTrainingMaxSource, type TrainingMaxSource } from '$lib/trainingMax';
 	import {
@@ -18,8 +20,6 @@
 
 	let { data, form }: PageProps = $props();
 
-	const ASSISTANCE_SLOTS = [1, 2];
-
 	// The first free Monday: after today, and after a block that is still running
 	const nextMonday = (): string => {
 		const todayDate = today();
@@ -30,23 +30,10 @@
 	const liftIdByName = (name: string): number =>
 		data.lifts.find((l) => l.name === name)?.id ?? data.lifts[0].id;
 
-	const emptyAssistance = (): AssistancePlan[] =>
-		data.lifts.flatMap((lift) =>
-			ASSISTANCE_SLOTS.map((position) => ({
-				liftId: lift.id,
-				position,
-				exerciseId: 0,
-				sets: 5,
-				reps: 10
-			}))
-		);
-
 	const assistanceFrom = (template: ProgramTemplate | undefined): AssistancePlan[] =>
-		emptyAssistance().map(
-			(slot) =>
-				template?.assistance.find(
-					(a) => a.liftId === slot.liftId && a.position === slot.position
-				) ?? slot
+		assistanceSlots(
+			data.lifts.map((l) => l.id),
+			template?.assistance ?? []
 		);
 
 	const templateById = (id: number): ProgramTemplate | undefined =>
@@ -342,39 +329,7 @@
 
 	<section>
 		<h2 class="section-title">Assistanse</h2>
-		<div class="table-wrap">
-			<table class="table">
-				<thead>
-					<tr>
-						<th>Løft</th>
-						<th>Øvelse</th>
-						<th>Sett</th>
-						<th>Reps</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each blockAssistance as slot (slot.liftId + '-' + slot.position)}
-						<tr>
-							<td>
-								{#if slot.position === 1}{liftName(slot.liftId)}{/if}
-								<input type="hidden" name="assistance_lift" value={slot.liftId} />
-								<input type="hidden" name="assistance_position" value={slot.position} />
-							</td>
-							<td>
-								<select name="assistance_exercise" bind:value={slot.exerciseId}>
-									<option value={0}>Ingen</option>
-									{#each data.exercises as exercise (exercise.id)}
-										<option value={exercise.id}>{exercise.name}</option>
-									{/each}
-								</select>
-							</td>
-							<td><input type="number" name="assistance_sets" bind:value={slot.sets} min="1" /></td>
-							<td><input type="number" name="assistance_reps" bind:value={slot.reps} min="1" /></td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
+		<AssistanceTable slots={blockAssistance} exercises={data.exercises} {liftName} />
 		{#if form?.errors?.assistance}<p class="error">{form.errors.assistance}</p>{/if}
 	</section>
 
@@ -446,10 +401,6 @@
 
 	.table select {
 		min-width: 9rem;
-	}
-
-	.table input[type='number'] {
-		width: 4.5rem;
 	}
 
 	.table-wrap + .btn {

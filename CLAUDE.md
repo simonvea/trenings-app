@@ -48,7 +48,8 @@ The app uses SQLite with a comprehensive schema for tracking 5/3/1 powerlifting 
 - `src/lib/trainingMax.ts` - Pure TM rules: 1RM estimate, TM from a test, which TM to suggest
   for a new block, and when to suggest lowering it after a session
 - `src/lib/types.ts` - TypeScript definitions for database entities
-- `src/routes/admin/` - Desktop admin: training maxes, blocks, new block from a program template
+- `src/routes/admin/` - Desktop admin: training maxes, blocks, new block from a program template,
+  edit a block's planned assistance (`blocks/[id]/edit`)
 - `src/routes/tm-tests/` - Phone page for logging TM tests
 - `src/lib/dayPlan/` - Day plan: `time.ts` (clock times, a weekday's next date), `status.ts`
   (pure "now / next" for a time of day, which entry a session belongs to), `form.ts` (edit form
