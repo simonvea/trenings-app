@@ -25,7 +25,7 @@ import type {
 import { error, fail, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { translateLiftName } from '$lib/helpers';
-import { sql } from '$lib/server/db';
+import { sql, transaction } from '$lib/server/db';
 import { addAssistanceWork, completeMainWorkout } from '$lib/server/transactions';
 
 type SessionDb = WorkoutSessionsDb &
@@ -93,32 +93,35 @@ export const actions = {
 				.filter((reps) => reps > 0)
 		}));
 
-		// Save!
-		completeMainWorkout({
-			sessionId,
-			setNumber,
-			plannedWeight,
-			plannedReps,
-			actualWeight: plannedWeight,
-			actualReps: recordsReps || isAmrap ? actualReps : plannedReps,
-			isAmrap,
-			hasDoneSupplemental,
-			notes,
-			trainingMax,
-			completedDate,
-			durationSeconds
-		});
-
-		for (const { exerciseId, weight, reps } of assistance) {
-			if (!exerciseId || reps.length === 0) continue;
-			addAssistanceWork({
+		// All or nothing: a partly saved session counts as completed, so the retry after an error
+		// would return early and the rest would be lost without notice
+		transaction(() => {
+			completeMainWorkout({
 				sessionId,
-				exerciseId,
-				sets: reps.length,
-				reps: reps.reduce((tot, curr) => tot + curr, 0),
-				weight
+				setNumber,
+				plannedWeight,
+				plannedReps,
+				actualWeight: plannedWeight,
+				actualReps: recordsReps || isAmrap ? actualReps : plannedReps,
+				isAmrap,
+				hasDoneSupplemental,
+				notes,
+				trainingMax,
+				completedDate,
+				durationSeconds
 			});
-		}
+
+			for (const { exerciseId, weight, reps } of assistance) {
+				if (!exerciseId || reps.length === 0) continue;
+				addAssistanceWork({
+					sessionId,
+					exerciseId,
+					sets: reps.length,
+					reps: reps.reduce((tot, curr) => tot + curr, 0),
+					weight
+				});
+			}
+		});
 
 		return { success: true };
 	},
