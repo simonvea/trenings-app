@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
 	estimateOneRepMax,
+	currentOneRepMax,
 	lowerTrainingMax,
+	oneRepMaxFromTrainingMax,
+	suggestedAmrapReps,
 	defaultTrainingMaxSource,
 	parseTestSet,
 	trainingMaxCheck,
@@ -32,6 +35,75 @@ describe('estimateOneRepMax', () => {
 
 			// Assert
 			expect(oneRepMax).toBe(120);
+		});
+	});
+});
+
+describe('oneRepMaxFromTrainingMax', () => {
+	describe('given a training max', () => {
+		it('when estimating, then the one rep max is the training max divided by 90 %', () => {
+			// Arrange
+			const trainingMax = 90;
+
+			// Act
+			const oneRepMax = oneRepMaxFromTrainingMax(trainingMax);
+
+			// Assert
+			expect(oneRepMax).toBeCloseTo(100);
+		});
+	});
+});
+
+describe('currentOneRepMax', () => {
+	describe('given a lift with a finished AMRAP set', () => {
+		it('when estimating, then the estimate comes from that set, not from the training max', () => {
+			// Arrange
+			const lastAmrap = { weight: 50, reps: 8 };
+
+			// Act
+			const oneRepMax = currentOneRepMax({ trainingMax: 45, lastAmrap });
+
+			// Assert
+			expect(oneRepMax).toBeCloseTo(estimateOneRepMax(lastAmrap));
+		});
+	});
+
+	describe('given a lift never done as an AMRAP set', () => {
+		it('when estimating, then the training max stands in', () => {
+			// Arrange
+			const trainingMax = 90;
+
+			// Act
+			const oneRepMax = currentOneRepMax({ trainingMax });
+
+			// Assert
+			expect(oneRepMax).toBeCloseTo(oneRepMaxFromTrainingMax(trainingMax));
+		});
+	});
+});
+
+describe('suggestedAmrapReps', () => {
+	describe('given the weight and reps of the last AMRAP set', () => {
+		it('when suggesting for the same weight, then the same reps come back', () => {
+			// Arrange
+			const lastAmrap = { weight: 50, reps: 8 };
+
+			// Act
+			const reps = suggestedAmrapReps(50, estimateOneRepMax(lastAmrap));
+
+			// Assert
+			expect(reps).toBe(8);
+		});
+
+		it('when suggesting for a lighter weight, then more reps are suggested', () => {
+			// Arrange
+			const oneRepMax = estimateOneRepMax({ weight: 50, reps: 8 });
+
+			// Act
+			const reps = suggestedAmrapReps(45, oneRepMax);
+
+			// Assert
+			expect(reps).toBeGreaterThan(8);
 		});
 	});
 });

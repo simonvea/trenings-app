@@ -12,11 +12,30 @@ const MAX_TEST_REPS = 10;
 // Catches a missing decimal comma (1025 for 102,5) before it can become a block's training max
 const MAX_TEST_WEIGHT = 500;
 
+// Wendler's 1RM estimate adds this share of the weight per rep
+const REP_FACTOR = 0.0333;
+
 // Rounded down so a rounding step never makes the training max heavier than the test
 const roundDownToHalfKg = (kg: number): number => Math.floor(kg * 2 + 1e-9) / 2;
 
 export const estimateOneRepMax = ({ weight, reps }: TestSet): number =>
-	reps === 1 ? weight : weight * reps * 0.0333 + weight;
+	reps === 1 ? weight : weight * reps * REP_FACTOR + weight;
+
+export const oneRepMaxFromTrainingMax = (trainingMax: number): number =>
+	trainingMax / TRAINING_MAX_SHARE;
+
+// The latest AMRAP set shows today's strength; the training max only lags behind it
+export const currentOneRepMax = ({
+	trainingMax,
+	lastAmrap
+}: {
+	trainingMax: number;
+	lastAmrap?: TestSet;
+}): number => (lastAmrap ? estimateOneRepMax(lastAmrap) : oneRepMaxFromTrainingMax(trainingMax));
+
+// Inverse of estimateOneRepMax, so the same weight suggests the reps the estimate came from
+export const suggestedAmrapReps = (weight: number, oneRepMax: number): number =>
+	Math.round((oneRepMax / weight - 1) / REP_FACTOR);
 
 export const trainingMaxFromTest = (set: TestSet): number =>
 	roundDownToHalfKg(estimateOneRepMax(set) * TRAINING_MAX_SHARE);

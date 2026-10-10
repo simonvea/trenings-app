@@ -4,6 +4,7 @@ import { parseDecimal, parseWholeNumber } from '$lib/format';
 import { lastBlockCreatedAt, updateTrainingMaxes } from '$lib/planning/db.server';
 import { supplementalWeight } from '$lib/supplemental';
 import {
+	currentOneRepMax,
 	defaultTrainingMaxSource,
 	trainingMaxCheck,
 	type TrainingMaxCheck
@@ -214,6 +215,18 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 	// A completed session keeps the weights it was done with, even after the training max changes
 	const trainingMax = history?.mainWork.at(-1)?.training_max ?? session.current_training_max;
 
+	// Strength changes with every session, so the latest AMRAP set beats a training max that only
+	// moves between blocks. Computed on read: main_work already is the record, a stored estimate
+	// would be a second copy to keep in sync.
+	const lastAmrap = sql.get`SELECT main_work.actual_weight AS weight, main_work.actual_reps AS reps
+FROM main_work
+INNER JOIN workout_sessions s ON s.id = main_work.session_id
+WHERE s.lift_id = ${session.lift_id} AND s.status = 'completed' AND main_work.is_amrap = 1
+AND main_work.actual_reps >= 1 AND main_work.actual_weight > 0
+ORDER BY s.completed_date DESC, main_work.id DESC
+LIMIT 1` as { weight: number; reps: number } | undefined;
+	const oneRepMax = currentOneRepMax({ trainingMax, lastAmrap });
+
 	const supplemental: SupplementalWork = {
 		sets: session.sets ?? 0,
 		reps: session.reps ?? 0,
@@ -297,6 +310,7 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 		tmCheck,
 		openTest,
 		trainingMax,
+		oneRepMax,
 		...neighbours
 	};
 };

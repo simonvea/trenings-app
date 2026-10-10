@@ -4,6 +4,7 @@
 	import { today } from '$lib/date';
 	import { browserStorage, clearDrafts, readDraft, writeDraft } from '$lib/draft';
 	import { formatKg, formatReps, formatSupplemental } from '$lib/format';
+	import { suggestedAmrapReps } from '$lib/trainingMax';
 	import type { AssistanceExerciseDb, MainLift } from '$lib/types';
 	import type { PlannedAssistance } from './+page.server';
 	import AssistanceSelect from './assistance-select.svelte';
@@ -11,12 +12,14 @@
 	type Props = {
 		sessionId: number;
 		trainingMax: number;
+		oneRepMax: number;
 		mainLift: MainLift;
 		exercises: AssistanceExerciseDb[];
 		plannedAssistance: PlannedAssistance[];
 	};
 
-	const { sessionId, trainingMax, mainLift, exercises, plannedAssistance }: Props = $props();
+	const { sessionId, trainingMax, oneRepMax, mainLift, exercises, plannedAssistance }: Props =
+		$props();
 
 	// The page keys this component on the session, so props are read once as starting state.
 	const initial = () => ({ mainLift });
@@ -87,12 +90,7 @@
 
 	const topSet = start.mainLift.sets[start.mainLift.sets.length - 1];
 
-	// Epley-style estimate of reps at this weight if the training max were a true 1RM
-	const suggestedAmrapReps = (weight: number, max: number): number => {
-		const constant = 0.0278;
-		return Math.round(-(weight / (max * constant)) + (1 + constant) / constant);
-	};
-	const amrapTarget = topSet.isAmrap ? suggestedAmrapReps(topSet.weight, trainingMax) : topSet.reps;
+	const amrapTarget = topSet.isAmrap ? suggestedAmrapReps(topSet.weight, oneRepMax) : topSet.reps;
 
 	const allSetsDone = $derived(
 		workSets.every((s) => s.done || s.recordsReps) &&

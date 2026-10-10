@@ -111,6 +111,7 @@
 				<SessionForm
 					sessionId={session.session_id}
 					trainingMax={session.current_training_max}
+					oneRepMax={data.oneRepMax}
 					{mainLift}
 					exercises={data.exercises}
 					plannedAssistance={data.plannedAssistance}
