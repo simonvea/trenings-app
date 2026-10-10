@@ -52,8 +52,10 @@
 		loading = false;
 	}
 
-	function fillPlannedReps(): void {
-		sets = sets.map((set) => set || String(planned.reps));
+	function fillNextSet(): void {
+		const next = sets.findIndex((set) => set === '');
+		if (next === -1) return;
+		sets[next] = String(planned.reps);
 	}
 
 	async function addSet(): Promise<void> {
@@ -118,7 +120,7 @@
 				<span class="unit">kg</span>
 			</span>
 		</label>
-		<button type="button" class="btn btn-secondary fill" onclick={fillPlannedReps}>
+		<button type="button" class="btn btn-secondary fill" onclick={fillNextSet}>
 			Fyll inn {planned.reps} reps
 		</button>
 	</div>
