@@ -124,3 +124,46 @@ export const trainingMaxCheck = ({
 			}
 		: { kind: 'askIfHeavy', lowered };
 };
+
+const LOWER_BODY_LIFTS = new Set(['Squat', 'Deadlift']);
+
+// Wendler: 10 lb for the lower body, 5 lb for the upper body, in kg
+export const trainingMaxIncrement = (liftName: string): number =>
+	LOWER_BODY_LIFTS.has(liftName) ? 5 : 2.5;
+
+export type CycleTopSet = { plannedReps: number; actualReps: number };
+
+export type TrainingMaxIncrease =
+	| { kind: 'none' }
+	| { kind: 'raise'; from: number; to: number }
+	| { kind: 'hold'; missedSets: number };
+
+// Wendler raises the training max by the normal amount after every cycle. The 7th week test
+// only checks it afterwards, so a raise never waits for that week. Missed reps in the cycle
+// hold it back: the training max is then not too light.
+export const trainingMaxIncrease = ({
+	liftName,
+	trainingMax,
+	sessionTrainingMax,
+	cycleType,
+	weekNumber,
+	topSets
+}: {
+	liftName: string;
+	trainingMax: number;
+	// Undefined for sessions from before it was stored, which could have been done at another one
+	sessionTrainingMax: number | undefined;
+	cycleType: 'leader' | 'anchor' | '7th week';
+	weekNumber: number;
+	topSets: CycleTopSet[];
+}): TrainingMaxIncrease => {
+	const lastWeekOfCycle = cycleType !== '7th week' && weekNumber === 3;
+	// A changed training max was already decided on, by raising it, lowering it or typing it in
+	const unchanged = sessionTrainingMax === trainingMax;
+	if (!lastWeekOfCycle || !unchanged || !(trainingMax > 0)) return { kind: 'none' };
+
+	const missedSets = topSets.filter((set) => set.actualReps < set.plannedReps).length;
+	if (missedSets > 0) return { kind: 'hold', missedSets };
+
+	return { kind: 'raise', from: trainingMax, to: trainingMax + trainingMaxIncrement(liftName) };
+};
