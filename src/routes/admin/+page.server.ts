@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { sql } from '$lib/server/db';
 import { parseDecimal } from '$lib/format';
 import { latestTrainingMaxTests } from '$lib/server/trainingMaxTests';
+import { trainingMaxIncrement } from '$lib/trainingMax';
 import type { LiftsDb } from '$lib/types';
 import { completeBlock, listBlocks, updateTrainingMaxes } from '$lib/planning/db.server';
 
@@ -34,6 +35,28 @@ export const actions = {
 			});
 
 		updateTrainingMaxes(valid);
+		return { tmSaved: true };
+	},
+
+	// The manual way to apply the cycle raise, e.g. when the session card was missed or the
+	// training max was held back for missed reps
+	increaseTm: async ({ request }) => {
+		const data = await request.formData();
+		const liftId = Number(data.get('lift_id'));
+
+		const lift = sql.get`SELECT name, current_training_max FROM lifts WHERE id = ${liftId}` as
+			| Pick<LiftsDb, 'name' | 'current_training_max'>
+			| undefined;
+		if (!lift) return fail(400, { tmError: 'Fant ikke løftet' });
+		// Raising from nothing would invent a training max rather than raise one
+		if (!(lift.current_training_max > 0))
+			return fail(400, { tmError: 'Sett en training max først' });
+
+		const raised = lift.current_training_max + trainingMaxIncrement(lift.name);
+		if (raised > MAX_TRAINING_MAX)
+			return fail(400, { tmError: `Training max kan ikke over ${MAX_TRAINING_MAX} kg` });
+
+		updateTrainingMaxes([{ liftId, trainingMax: raised }]);
 		return { tmSaved: true };
 	},
 

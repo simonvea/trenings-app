@@ -4,6 +4,7 @@
 	import { resolve } from '$app/paths';
 	import { formatShortDate, localDateOfUtcTimestamp } from '$lib/date';
 	import { formatKg } from '$lib/format';
+	import { trainingMaxIncrement } from '$lib/trainingMax';
 	import { translateLiftName } from '$lib/helpers';
 	import type { PageProps } from './$types';
 
@@ -76,6 +77,30 @@
 				{:else if form?.tmSaved}
 					<p class="ok" role="status">Lagret.</p>
 				{/if}
+			</div>
+		</form>
+		<form
+			class="card raise"
+			method="POST"
+			action="?/increaseTm"
+			use:enhance={() =>
+				({ update }) =>
+					update({ reset: false })}
+		>
+			<h3>Øk etter fullført syklus</h3>
+			<div class="raise-buttons">
+				{#each data.lifts as lift (lift.id)}
+					{@const increment = trainingMaxIncrement(lift.name)}
+					<button
+						class="btn btn-secondary"
+						type="submit"
+						name="lift_id"
+						value={lift.id}
+						disabled={!(lift.current_training_max > 0)}
+					>
+						{translateLiftName(lift.name)} +{formatKg(increment)}
+					</button>
+				{/each}
 			</div>
 		</form>
 	</section>
@@ -205,6 +230,24 @@
 
 	.updated {
 		font-size: 0.8rem;
+	}
+
+	.raise {
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+		margin-top: 1rem;
+		padding: 1rem;
+	}
+
+	.raise h3 {
+		font-size: 1.05rem;
+	}
+
+	.raise-buttons {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.6rem;
 	}
 
 	.actions {
