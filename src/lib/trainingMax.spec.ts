@@ -342,10 +342,10 @@ describe('trainingMaxCheck', () => {
 	describe('given a TM-test week set at 100 % planned for five reps', () => {
 		const testWeek = {
 			trainingMax: 100,
-			topSet: { percentage: 1, plannedWeight: 100, plannedReps: 5, actualReps: 3, isAmrap: false }
+			topSet: { percentage: 1, plannedWeight: 100, plannedReps: 5, actualReps: 5, isAmrap: false }
 		};
 
-		it('when three reps were done, then it counts as passed', () => {
+		it('when five reps were done, then it counts as passed', () => {
 			// Arrange
 			const session = testWeek;
 
@@ -356,9 +356,9 @@ describe('trainingMaxCheck', () => {
 			expect(check).toEqual({ kind: 'askIfHeavy', lowered: 90 });
 		});
 
-		it('when only two reps were done, then the training max is lowered from the estimated max', () => {
+		it('when four reps were done, then the training max is lowered from the estimated max', () => {
 			// Arrange
-			const session = { ...testWeek, topSet: { ...testWeek.topSet, actualReps: 2 } };
+			const session = { ...testWeek, topSet: { ...testWeek.topSet, actualReps: 4 } };
 
 			// Act
 			const check = trainingMaxCheck(session);
@@ -366,9 +366,9 @@ describe('trainingMaxCheck', () => {
 			// Assert
 			expect(check).toEqual({
 				kind: 'missedReps',
-				actualReps: 2,
-				minimumReps: 3,
-				lowered: 90.5,
+				actualReps: 4,
+				minimumReps: 5,
+				lowered: 96,
 				basis: 'estimatedMax'
 			});
 		});
@@ -382,6 +382,22 @@ describe('trainingMaxCheck', () => {
 
 			// Assert
 			expect(check).toMatchObject({ kind: 'missedReps', lowered: 85, basis: 'estimatedMax' });
+		});
+	});
+
+	describe('given a PR week AMRAP set at 100 % with a goal of eight reps', () => {
+		it('when seven reps were done, then the 10 % rule is used as the estimate is above the training max', () => {
+			// Arrange
+			const session = {
+				trainingMax: 100,
+				topSet: { percentage: 1, plannedWeight: 100, plannedReps: 8, actualReps: 7, isAmrap: true }
+			};
+
+			// Act
+			const check = trainingMaxCheck(session);
+
+			// Assert
+			expect(check).toMatchObject({ kind: 'missedReps', lowered: 90, basis: 'tenPercent' });
 		});
 	});
 
