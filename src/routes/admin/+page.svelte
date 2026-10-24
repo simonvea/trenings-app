@@ -15,10 +15,10 @@
 	const formatDate = (date: string | null | undefined): string =>
 		date ? formatShortDate(date.slice(0, 10)) : '–';
 
-	// Completing hides the block's sessions and cannot be undone here, so it takes a second
-	// click. The button turns into the confirm under the pointer, so a double click is ignored.
 	let raising = $state(false);
 
+	// Completing hides the block's sessions and cannot be undone here, so it takes a second
+	// click. The button turns into the confirm under the pointer, so a double click is ignored.
 	let confirmingBlockId = $state<number>();
 	let armedAt = 0;
 	let confirmTimer: ReturnType<typeof setTimeout> | undefined;
