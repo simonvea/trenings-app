@@ -112,7 +112,7 @@
 		<p>
 			Toppsettet ble {formatReps(check.actualReps)}, under kravet på {check.minimumReps}.
 			{#if check.basis === 'estimatedMax'}
-				Wendler anbefaler å sette training max til 90 % av estimert maks ({formatKg(trainingMax)} → {formatKg(
+				Wendler anbefaler å sette training max til 85 % av estimert maks ({formatKg(trainingMax)} → {formatKg(
 					check.lowered
 				)}).
 			{:else}

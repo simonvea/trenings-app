@@ -3,8 +3,8 @@ import { parseDecimal } from './format';
 
 export type TestSet = { weight: number; reps: number };
 
-// 90 % is the original 5/3/1 training max; the existing maxes were set this way
-const TRAINING_MAX_SHARE = 0.9;
+// Wendler recommends 85 % for most lifters of the Forever templates; the original program used 90 %
+const TRAINING_MAX_SHARE = 0.85;
 // Wendler's advice when a training max turns out too heavy
 const TOO_HEAVY_SHARE = 0.9;
 // Rep-based estimates drift badly above ten reps
@@ -98,8 +98,8 @@ export type TrainingMaxCheck =
 	| { kind: 'askIfHeavy'; lowered: number }
 	| { kind: 'changed'; trainingMax: number };
 
-// Wendler's pass mark for a set at the full training max: with the training max at 90 % of
-// the 1RM, three reps. The TM-test week plans five, which is the 85 % training max's mark.
+// Wendler's pass mark for a set at the full training max is three reps at a 90 % training max
+// and five at 85 %. TODO: the share is 85 % now, so the mark may belong at the planned five.
 const TEST_MINIMUM_REPS = 3;
 
 // Wendler: missing the minimum reps on the + set, or a 100 % set in the 7th week that

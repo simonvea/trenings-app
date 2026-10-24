@@ -44,9 +44,9 @@ describe('estimateOneRepMax', () => {
 
 describe('oneRepMaxFromTrainingMax', () => {
 	describe('given a training max', () => {
-		it('when estimating, then the one rep max is the training max divided by 90 %', () => {
+		it('when estimating, then the one rep max is the training max divided by 85 %', () => {
 			// Arrange
-			const trainingMax = 90;
+			const trainingMax = 85;
 
 			// Act
 			const oneRepMax = oneRepMaxFromTrainingMax(trainingMax);
@@ -74,7 +74,7 @@ describe('currentOneRepMax', () => {
 	describe('given a lift never done as an AMRAP set', () => {
 		it('when estimating, then the training max stands in', () => {
 			// Arrange
-			const trainingMax = 90;
+			const trainingMax = 85;
 
 			// Act
 			const oneRepMax = currentOneRepMax({ trainingMax });
@@ -113,7 +113,7 @@ describe('suggestedAmrapReps', () => {
 
 describe('trainingMaxFromTest', () => {
 	describe('given a test set', () => {
-		it('when calculating, then the training max is 90 % of the estimated max rounded down to 0.5 kg', () => {
+		it('when calculating, then the training max is 85 % of the estimated max rounded down to 0.5 kg', () => {
 			// Arrange
 			const set = { weight: 100, reps: 5 };
 
@@ -121,20 +121,20 @@ describe('trainingMaxFromTest', () => {
 			const trainingMax = trainingMaxFromTest(set);
 
 			// Assert
-			expect(trainingMax).toBe(104.5);
+			expect(trainingMax).toBe(99);
 		});
 	});
 
 	describe('given a result exactly on a half kilo', () => {
 		it('when calculating, then floating point error does not round it down another step', () => {
 			// Arrange
-			const set = { weight: 115, reps: 1 };
+			const set = { weight: 110, reps: 1 };
 
 			// Act
 			const trainingMax = trainingMaxFromTest(set);
 
 			// Assert
-			expect(trainingMax).toBe(103.5);
+			expect(trainingMax).toBe(93.5);
 		});
 	});
 });
@@ -333,7 +333,7 @@ describe('trainingMaxCheck', () => {
 				kind: 'missedReps',
 				actualReps: 2,
 				minimumReps: 3,
-				lowered: 95.5,
+				lowered: 90.5,
 				basis: 'estimatedMax'
 			});
 		});
@@ -368,12 +368,12 @@ describe('trainingMaxCheck', () => {
 				kind: 'missedReps',
 				actualReps: 2,
 				minimumReps: 3,
-				lowered: 95.5,
+				lowered: 90.5,
 				basis: 'estimatedMax'
 			});
 		});
 
-		it('when no rep was done, then the estimate is the weight itself, so 90 % of it', () => {
+		it('when no rep was done, then the estimate is the weight itself, so 85 % of it', () => {
 			// Arrange
 			const session = { ...testWeek, topSet: { ...testWeek.topSet, actualReps: 0 } };
 
@@ -381,7 +381,7 @@ describe('trainingMaxCheck', () => {
 			const check = trainingMaxCheck(session);
 
 			// Assert
-			expect(check).toMatchObject({ kind: 'missedReps', lowered: 90, basis: 'estimatedMax' });
+			expect(check).toMatchObject({ kind: 'missedReps', lowered: 85, basis: 'estimatedMax' });
 		});
 	});
 

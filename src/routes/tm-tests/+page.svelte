@@ -155,7 +155,7 @@
 			<p class="ok" role="status">Lagret{lastSaved ? `: ${lastSaved}` : '.'}</p>
 		{/if}
 		<p class="hint muted">
-			Ett tungt sett med 3–5 gode reps. Training max blir 90 % av estimert 1RM, og du velger om den
+			Ett tungt sett med 3–5 gode reps. Training max blir 85 % av estimert 1RM, og du velger om den
 			skal brukes når du lager neste blokk.
 		</p>
 	</form>
