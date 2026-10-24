@@ -3,8 +3,8 @@ import { parseDecimal } from './format';
 
 export type TestSet = { weight: number; reps: number };
 
-// 90 % is the original 5/3/1 training max; the existing maxes were set this way
-const TRAINING_MAX_SHARE = 0.9;
+// Wendler recommends 85 % for most lifters of the Forever templates; the original program used 90 %
+const TRAINING_MAX_SHARE = 0.85;
 // Wendler's advice when a training max turns out too heavy
 const TOO_HEAVY_SHARE = 0.9;
 // Rep-based estimates drift badly above ten reps
@@ -87,7 +87,14 @@ export type TopSetResult = {
 
 export type TrainingMaxCheck =
 	| { kind: 'none' }
-	| { kind: 'missedReps'; actualReps: number; minimumReps: number; lowered: number }
+	| {
+			kind: 'missedReps';
+			actualReps: number;
+			minimumReps: number;
+			lowered: number;
+			// The 10 % rule fits a missed AMRAP; at the full training max the reps are a test of it
+			basis: 'tenPercent' | 'estimatedMax';
+	  }
 	| { kind: 'askIfHeavy'; lowered: number }
 	| { kind: 'changed'; trainingMax: number };
 
@@ -103,7 +110,8 @@ export const trainingMaxCheck = ({
 	sessionTrainingMax?: number;
 	topSet: TopSetResult;
 }): TrainingMaxCheck => {
-	const atFullTrainingMax = !topSet.isAmrap && topSet.percentage >= 1;
+	const atTrainingMax = topSet.percentage >= 1;
+	const atFullTrainingMax = !topSet.isAmrap && atTrainingMax;
 	const missedReps =
 		(topSet.isAmrap || atFullTrainingMax) && topSet.actualReps < topSet.plannedReps;
 	if (!missedReps && !atFullTrainingMax) return { kind: 'none' };
@@ -116,15 +124,26 @@ export const trainingMaxCheck = ({
 			: sessionTrainingMax !== trainingMax;
 	if (changed) return { kind: 'changed', trainingMax };
 
-	const lowered = lowerTrainingMax(trainingMax);
-	return missedReps
-		? {
+	if (!missedReps) return { kind: 'askIfHeavy', lowered: lowerTrainingMax(trainingMax) };
+	if (atTrainingMax) {
+		// A PR goal above five reps can estimate a max over the training max; that is no reason to lower it
+		const fromEstimate = trainingMaxFromTest({ weight: trainingMax, reps: topSet.actualReps });
+		if (fromEstimate < trainingMax)
+			return {
 				kind: 'missedReps',
 				actualReps: topSet.actualReps,
 				minimumReps: topSet.plannedReps,
-				lowered
-			}
-		: { kind: 'askIfHeavy', lowered };
+				lowered: fromEstimate,
+				basis: 'estimatedMax'
+			};
+	}
+	return {
+		kind: 'missedReps',
+		actualReps: topSet.actualReps,
+		minimumReps: topSet.plannedReps,
+		lowered: lowerTrainingMax(trainingMax),
+		basis: 'tenPercent'
+	};
 };
 
 const LOWER_BODY_LIFTS = new Set(['Squat', 'Deadlift']);

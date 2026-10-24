@@ -110,8 +110,16 @@
 	<section class="card check warning">
 		<h3>Training max er trolig for høy</h3>
 		<p>
-			Toppsettet ble {formatReps(check.actualReps)}, under kravet på {check.minimumReps}. Wendler
-			anbefaler å senke training max med 10 % ({formatKg(trainingMax)} → {formatKg(check.lowered)}).
+			Toppsettet ble {formatReps(check.actualReps)}, under kravet på {check.minimumReps}.
+			{#if check.basis === 'estimatedMax'}
+				Wendler anbefaler å sette training max til 85 % av estimert maks ({formatKg(trainingMax)} → {formatKg(
+					check.lowered
+				)}).
+			{:else}
+				Wendler anbefaler å senke training max med 10 % ({formatKg(trainingMax)} → {formatKg(
+					check.lowered
+				)}).
+			{/if}
 		</p>
 		{@render changeForm(
 			trainingMax,
