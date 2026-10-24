@@ -4,6 +4,7 @@
 	import { resolve } from '$app/paths';
 	import { formatShortDate, localDateOfUtcTimestamp } from '$lib/date';
 	import { formatKg } from '$lib/format';
+	import { trainingMaxIncrement } from '$lib/trainingMax';
 	import { translateLiftName } from '$lib/helpers';
 	import type { PageProps } from './$types';
 
@@ -13,6 +14,8 @@
 
 	const formatDate = (date: string | null | undefined): string =>
 		date ? formatShortDate(date.slice(0, 10)) : '–';
+
+	let raising = $state(false);
 
 	// Completing hides the block's sessions and cannot be undone here, so it takes a second
 	// click. The button turns into the confirm under the pointer, so a double click is ignored.
@@ -77,6 +80,49 @@
 					<p class="ok" role="status">Lagret.</p>
 				{/if}
 			</div>
+		</form>
+		<form
+			class="card raise"
+			method="POST"
+			action="?/increaseTm"
+			use:enhance={() => {
+				raising = true;
+				return async ({ update }) => {
+					// Kept disabled until the new training max is loaded, so it cannot be sent twice
+					try {
+						await update({ reset: false });
+					} finally {
+						raising = false;
+					}
+				};
+			}}
+		>
+			<h3>Øk etter fullført syklus</h3>
+			<div class="raise-buttons">
+				{#each data.lifts as lift (lift.id)}
+					{@const increment = trainingMaxIncrement(lift.name)}
+					<input type="hidden" name={'from_' + lift.id} value={lift.current_training_max} />
+					<button
+						class="btn btn-secondary"
+						type="submit"
+						name="lift_id"
+						value={lift.id}
+						disabled={raising || !(lift.current_training_max > 0)}
+					>
+						{translateLiftName(lift.name)} +{formatKg(increment)}
+					</button>
+				{/each}
+			</div>
+			{#if form?.raiseError}
+				<p class="error" role="alert">{form.raiseError}</p>
+			{:else if form?.raised}
+				{@const raisedLift = data.lifts.find((lift) => lift.id === form.raised.liftId)}
+				<p class="ok" role="status">
+					{raisedLift ? translateLiftName(raisedLift.name) : 'Løftet'} er økt til {formatKg(
+						form.raised.to
+					)}.
+				</p>
+			{/if}
 		</form>
 	</section>
 
@@ -205,6 +251,24 @@
 
 	.updated {
 		font-size: 0.8rem;
+	}
+
+	.raise {
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+		margin-top: 1rem;
+		padding: 1rem;
+	}
+
+	.raise h3 {
+		font-size: 1.05rem;
+	}
+
+	.raise-buttons {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.6rem;
 	}
 
 	.actions {

@@ -11,6 +11,8 @@ const TOO_HEAVY_SHARE = 0.9;
 const MAX_TEST_REPS = 10;
 // Catches a missing decimal comma (1025 for 102,5) before it can become a block's training max
 const MAX_TEST_WEIGHT = 500;
+// The same guard for a training max typed in or raised, before it changes every session's weights
+export const MAX_TRAINING_MAX = 500;
 
 // Wendler's 1RM estimate adds this share of the weight per rep
 const REP_FACTOR = 0.0333;
@@ -123,4 +125,60 @@ export const trainingMaxCheck = ({
 				lowered
 			}
 		: { kind: 'askIfHeavy', lowered };
+};
+
+const LOWER_BODY_LIFTS = new Set(['Squat', 'Deadlift']);
+
+// Wendler: 10 lb for the lower body, 5 lb for the upper body, in kg
+export const trainingMaxIncrement = (liftName: string): number =>
+	LOWER_BODY_LIFTS.has(liftName) ? 5 : 2.5;
+
+const CYCLE_WEEKS = 3;
+
+// actualReps is null when the set was skipped
+export type CycleTopSet = { plannedReps: number; actualReps: number | null };
+
+export type TrainingMaxIncrease =
+	| { kind: 'none' }
+	| { kind: 'raise'; from: number; to: number }
+	| { kind: 'hold'; missedSets: number };
+
+// Wendler raises the training max by the normal amount after every cycle. The 7th week test
+// only checks it afterwards, so a raise never waits for that week. Missed or skipped reps in
+// the cycle hold it back: the training max is then not too light. Only the lift's latest
+// completed session offers it, so an old cycle's page cannot raise the training max twice.
+export const trainingMaxIncrease = ({
+	liftName,
+	trainingMax,
+	sessionTrainingMax,
+	cycleType,
+	weekNumber,
+	topSets,
+	isLatestCompletedSession
+}: {
+	liftName: string;
+	trainingMax: number;
+	// Undefined for sessions from before it was stored, which could have been done at another one
+	sessionTrainingMax: number | undefined;
+	cycleType: 'leader' | 'anchor' | '7th week';
+	weekNumber: number;
+	// One top set per week; fewer means weeks of the cycle were never logged
+	topSets: CycleTopSet[];
+	isLatestCompletedSession: boolean;
+}): TrainingMaxIncrease => {
+	const lastWeekOfCycle = cycleType !== '7th week' && weekNumber === CYCLE_WEEKS;
+	// A changed training max was already decided on, by raising it, lowering it or typing it in
+	const unchanged = sessionTrainingMax === trainingMax;
+	const wholeCycleLogged = topSets.length === CYCLE_WEEKS;
+	if (!lastWeekOfCycle || !unchanged || !(trainingMax > 0)) return { kind: 'none' };
+	if (!wholeCycleLogged || !isLatestCompletedSession) return { kind: 'none' };
+
+	const missedSets = topSets.filter(
+		(set) => set.actualReps === null || set.actualReps < set.plannedReps
+	).length;
+	if (missedSets > 0) return { kind: 'hold', missedSets };
+
+	const raised = trainingMax + trainingMaxIncrement(liftName);
+	if (raised > MAX_TRAINING_MAX) return { kind: 'none' };
+	return { kind: 'raise', from: trainingMax, to: raised };
 };

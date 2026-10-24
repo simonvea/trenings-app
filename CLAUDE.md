@@ -47,10 +47,13 @@ The app uses SQLite with a comprehensive schema for tracking 5/3/1 powerlifting 
 - `src/lib/server/migrations/NNN_*.sql` - Schema migrations, tracked with `PRAGMA user_version`. Add a new numbered file for schema changes; never edit an applied one
 - `src/lib/planning/` - Block planning: `schedule.ts` (pure session date planning), `blockForm.ts` (form parsing/validation), `db.server.ts` (planning queries)
 - `src/lib/trainingMax.ts` - Pure TM rules: 1RM estimate, TM from a test, which TM to suggest
-  for a new block, and when to suggest lowering it after a session
+  for a new block, when to suggest lowering it after a session, and when to raise it after a
+  cycle (`trainingMaxIncrease`; Wendler's +5 kg lower body, +2.5 kg upper body, hardcoded in
+  `trainingMaxIncrement`)
 - `src/lib/types.ts` - TypeScript definitions for database entities
 - `src/routes/admin/` - Desktop admin: training maxes, blocks, new block from a program template,
-  edit a block's planned assistance (`blocks/[id]/edit`)
+  edit a block's planned assistance (`blocks/[id]/edit`), and a per-lift button that raises a
+  training max by Wendler's increment
 - `src/routes/tm-tests/` - Phone page for logging TM tests
 - `src/lib/dayPlan/` - Day plan: `time.ts` (clock times, a weekday's next date), `status.ts`
   (pure "now / next" for a time of day, which entry a session belongs to), `form.ts` (edit form
@@ -58,7 +61,8 @@ The app uses SQLite with a comprehensive schema for tracking 5/3/1 powerlifting 
   matcher (`src/params/weekday.ts`): `/day` is today, `/day/[weekday]` that weekday's next
   date, `/day/[weekday]/edit` edits the weekday
 - `src/routes/sessions/[date]/` - Phone session logging; `training-max-check.svelte` is the
-  post-session "lower TM" card
+  post-session TM card: "lower TM" after missed reps, and "raise TM" (or a hold note) on a lift's
+  latest completed week-3 session of a leader/anchor cycle
 
 Dates are local calendar days (`src/lib/date.ts`). The server runs with `TZ=Europe/Oslo`, which
 Node follows; SQLite's `date('now', 'localtime')` may not in the Alpine image (no tzdata), so
@@ -68,7 +72,9 @@ right.
 
 ### Planning workflow
 
-1. `/admin` - set training maxes (writes `training_max_history`), list and complete blocks
+1. `/admin` - set training maxes (writes `training_max_history`), or raise one by Wendler's
+   increment after a cycle (the session card offers the same, but holds it after missed reps),
+   list and complete blocks. The 7th week test does not gate the raise; it only checks the TM
 2. `/admin/blocks/new` - pick a program template; its cycles and assistance prefill the form.
    Per lift, choose current TM or the latest test (`defaultTrainingMaxSource` picks the default).
    A block may not overlap a running one

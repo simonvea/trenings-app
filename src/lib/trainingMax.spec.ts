@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	MAX_TRAINING_MAX,
 	estimateOneRepMax,
 	currentOneRepMax,
 	lowerTrainingMax,
@@ -8,7 +9,9 @@ import {
 	defaultTrainingMaxSource,
 	parseTestSet,
 	trainingMaxCheck,
-	trainingMaxFromTest
+	trainingMaxFromTest,
+	trainingMaxIncrease,
+	trainingMaxIncrement
 } from './trainingMax';
 
 describe('estimateOneRepMax', () => {
@@ -457,6 +460,205 @@ describe('defaultTrainingMaxSource', () => {
 
 			// Assert
 			expect(source).toBe('test');
+		});
+	});
+});
+
+describe('trainingMaxIncrement', () => {
+	describe.each([
+		['Squat', 5],
+		['Deadlift', 5],
+		['Bench Press', 2.5],
+		['Overhead Press', 2.5],
+		['Barbell Row', 2.5]
+	])('given %s', (liftName, expected) => {
+		it(`when asking for the increment, then it is ${expected} kg`, () => {
+			// Arrange / Act
+			const increment = trainingMaxIncrement(liftName);
+
+			// Assert
+			expect(increment).toBe(expected);
+		});
+	});
+});
+
+describe('trainingMaxIncrease', () => {
+	const hit = { plannedReps: 5, actualReps: 5 };
+	const lastWeekOfLeader = {
+		liftName: 'Squat',
+		trainingMax: 100,
+		sessionTrainingMax: 100,
+		cycleType: 'leader' as const,
+		weekNumber: 3,
+		topSets: [hit, hit, hit],
+		isLatestCompletedSession: true
+	};
+
+	describe('given the last week of a leader cycle where every top set reached its reps', () => {
+		it('when deciding, then the training max rises by the lift’s increment', () => {
+			// Arrange
+			const cycle = lastWeekOfLeader;
+
+			// Act
+			const increase = trainingMaxIncrease(cycle);
+
+			// Assert
+			expect(increase).toEqual({ kind: 'raise', from: 100, to: 105 });
+		});
+	});
+
+	describe('given the last week of an anchor cycle on an upper body lift', () => {
+		it('when deciding, then the training max rises by 2.5 kg', () => {
+			// Arrange
+			const cycle = {
+				...lastWeekOfLeader,
+				liftName: 'Bench Press',
+				trainingMax: 80,
+				sessionTrainingMax: 80,
+				cycleType: 'anchor' as const
+			};
+
+			// Act
+			const increase = trainingMaxIncrease(cycle);
+
+			// Assert
+			expect(increase).toEqual({ kind: 'raise', from: 80, to: 82.5 });
+		});
+	});
+
+	describe('given a top set in the cycle below its planned reps', () => {
+		it('when deciding, then the training max is held and the missed sets are counted', () => {
+			// Arrange
+			const missed = { plannedReps: 5, actualReps: 3 };
+			const cycle = { ...lastWeekOfLeader, topSets: [hit, missed, missed] };
+
+			// Act
+			const increase = trainingMaxIncrease(cycle);
+
+			// Assert
+			expect(increase).toEqual({ kind: 'hold', missedSets: 2 });
+		});
+	});
+
+	describe('given a skipped top set in the cycle', () => {
+		it('when deciding, then it counts as missed and the training max is held', () => {
+			// Arrange
+			const skipped = { plannedReps: 5, actualReps: null };
+			const cycle = { ...lastWeekOfLeader, topSets: [skipped, hit, hit] };
+
+			// Act
+			const increase = trainingMaxIncrease(cycle);
+
+			// Assert
+			expect(increase).toEqual({ kind: 'hold', missedSets: 1 });
+		});
+	});
+
+	describe('given a cycle where only the last week was logged', () => {
+		it('when deciding, then nothing is offered after a single session', () => {
+			// Arrange
+			const cycle = { ...lastWeekOfLeader, topSets: [hit] };
+
+			// Act
+			const increase = trainingMaxIncrease(cycle);
+
+			// Assert
+			expect(increase).toEqual({ kind: 'none' });
+		});
+	});
+
+	describe('given a later session of the same lift was completed', () => {
+		it('when deciding, then nothing is offered, since a later cycle already ran at this training max', () => {
+			// Arrange
+			const cycle = { ...lastWeekOfLeader, isLatestCompletedSession: false };
+
+			// Act
+			const increase = trainingMaxIncrease(cycle);
+
+			// Assert
+			expect(increase).toEqual({ kind: 'none' });
+		});
+	});
+
+	describe('given a raise that would pass the highest allowed training max', () => {
+		it('when deciding, then nothing is offered, so the card never offers what is refused', () => {
+			// Arrange
+			const cycle = {
+				...lastWeekOfLeader,
+				trainingMax: MAX_TRAINING_MAX - 1,
+				sessionTrainingMax: MAX_TRAINING_MAX - 1
+			};
+
+			// Act
+			const increase = trainingMaxIncrease(cycle);
+
+			// Assert
+			expect(increase).toEqual({ kind: 'none' });
+		});
+	});
+
+	describe('given a 7th week', () => {
+		it('when deciding, then nothing is offered, since the test only checks the training max', () => {
+			// Arrange
+			const cycle = { ...lastWeekOfLeader, cycleType: '7th week' as const, weekNumber: 1 };
+
+			// Act
+			const increase = trainingMaxIncrease(cycle);
+
+			// Assert
+			expect(increase).toEqual({ kind: 'none' });
+		});
+	});
+
+	describe.each([1, 2])('given week %i of a cycle', (weekNumber) => {
+		it('when deciding, then nothing is offered before the cycle is done', () => {
+			// Arrange
+			const cycle = { ...lastWeekOfLeader, weekNumber };
+
+			// Act
+			const increase = trainingMaxIncrease(cycle);
+
+			// Assert
+			expect(increase).toEqual({ kind: 'none' });
+		});
+	});
+
+	describe('given the training max changed after the session', () => {
+		it('when deciding, then nothing is offered, so an accepted raise does not come back', () => {
+			// Arrange
+			const cycle = { ...lastWeekOfLeader, trainingMax: 105 };
+
+			// Act
+			const increase = trainingMaxIncrease(cycle);
+
+			// Assert
+			expect(increase).toEqual({ kind: 'none' });
+		});
+	});
+
+	describe('given a session that did not store its training max', () => {
+		it('when deciding, then nothing is offered, since a change cannot be ruled out', () => {
+			// Arrange
+			const cycle = { ...lastWeekOfLeader, sessionTrainingMax: undefined };
+
+			// Act
+			const increase = trainingMaxIncrease(cycle);
+
+			// Assert
+			expect(increase).toEqual({ kind: 'none' });
+		});
+	});
+
+	describe('given a lift without a training max', () => {
+		it('when deciding, then nothing is offered', () => {
+			// Arrange
+			const cycle = { ...lastWeekOfLeader, trainingMax: 0, sessionTrainingMax: 0 };
+
+			// Act
+			const increase = trainingMaxIncrease(cycle);
+
+			// Assert
+			expect(increase).toEqual({ kind: 'none' });
 		});
 	});
 });
