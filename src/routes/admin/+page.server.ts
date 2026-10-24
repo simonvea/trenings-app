@@ -3,12 +3,9 @@ import type { Actions, PageServerLoad } from './$types';
 import { sql } from '$lib/server/db';
 import { parseDecimal } from '$lib/format';
 import { latestTrainingMaxTests } from '$lib/server/trainingMaxTests';
-import { trainingMaxIncrement } from '$lib/trainingMax';
+import { MAX_TRAINING_MAX, trainingMaxIncrement } from '$lib/trainingMax';
 import type { LiftsDb } from '$lib/types';
 import { completeBlock, listBlocks, updateTrainingMaxes } from '$lib/planning/db.server';
-
-// Catches a missing decimal comma (1025 for 102,5) before it changes every session's weights
-const MAX_TRAINING_MAX = 500;
 
 export const load: PageServerLoad = () => ({
 	title: 'Planlegging',
@@ -43,21 +40,25 @@ export const actions = {
 	increaseTm: async ({ request }) => {
 		const data = await request.formData();
 		const liftId = Number(data.get('lift_id'));
+		// The training max the button was showing, so a double tap or a resent form cannot raise twice
+		const from = Number(data.get(`from_${liftId}`));
 
 		const lift = sql.get`SELECT name, current_training_max FROM lifts WHERE id = ${liftId}` as
 			| Pick<LiftsDb, 'name' | 'current_training_max'>
 			| undefined;
-		if (!lift) return fail(400, { tmError: 'Fant ikke løftet' });
+		if (!lift) return fail(400, { raiseError: 'Fant ikke løftet' });
+		if (lift.current_training_max !== from)
+			return fail(409, { raiseError: 'Training max er allerede endret' });
 		// Raising from nothing would invent a training max rather than raise one
 		if (!(lift.current_training_max > 0))
-			return fail(400, { tmError: 'Sett en training max først' });
+			return fail(400, { raiseError: 'Sett en training max først' });
 
 		const raised = lift.current_training_max + trainingMaxIncrement(lift.name);
 		if (raised > MAX_TRAINING_MAX)
-			return fail(400, { tmError: `Training max kan ikke over ${MAX_TRAINING_MAX} kg` });
+			return fail(400, { raiseError: `Training max kan ikke være over ${MAX_TRAINING_MAX} kg` });
 
 		updateTrainingMaxes([{ liftId, trainingMax: raised }]);
-		return { tmSaved: true };
+		return { raised: { liftId, to: raised } };
 	},
 
 	completeBlock: async ({ request }) => {

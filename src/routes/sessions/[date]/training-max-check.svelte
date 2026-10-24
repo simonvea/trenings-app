@@ -137,6 +137,7 @@
 		)}
 		<button class="btn btn-secondary" type="button" onclick={wentFine}>Nei, det gikk greit</button>
 	</section>
+	<!-- Undoing a raise brings this card back, as the training max is the session's again -->
 {:else if increase.kind === 'raise' && skippedRaise === false}
 	<section class="card check">
 		<h3>Øk training max?</h3>
@@ -159,7 +160,7 @@
 		<h3>Training max holdes</h3>
 		<p>
 			{increase.missedSets} toppsett i syklusen nådde ikke repsene, så training max økes ikke. Vil du
-			øke likevel, bruk Øk-knappen under Planlegging.
+			øke likevel, bruk knappene under «Øk etter fullført syklus» på Planlegg-siden.
 		</p>
 	</section>
 {/if}

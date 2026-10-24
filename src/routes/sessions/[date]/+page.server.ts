@@ -4,6 +4,7 @@ import { parseDecimal, parseWholeNumber } from '$lib/format';
 import { lastBlockCreatedAt, updateTrainingMaxes } from '$lib/planning/db.server';
 import { supplementalWeight } from '$lib/supplemental';
 import {
+	MAX_TRAINING_MAX,
 	currentOneRepMax,
 	defaultTrainingMaxSource,
 	trainingMaxCheck,
@@ -135,7 +136,7 @@ export const actions = {
 		const liftId = Number(data.get('lift_id'));
 		const from = Number(data.get('from'));
 		const to = Number(data.get('to'));
-		if (!(to > 0 && to <= 500)) return fail(400, { tmError: 'Ugyldig training max' });
+		if (!(to > 0 && to <= MAX_TRAINING_MAX)) return fail(400, { tmError: 'Ugyldig training max' });
 
 		const lift = sql.get`SELECT current_training_max FROM lifts WHERE id = ${liftId}` as
 			| Pick<LiftsDb, 'current_training_max'>
@@ -216,18 +217,22 @@ WHERE assistance_work.session_id = ${session.session_id}` as unknown as (Assista
 		if (session.week_number_in_cycle === 3) {
 			// The last set of each session is its top set, also in the 4-set 7th week
 			const topSets = sql.all`SELECT main_work.planned_reps AS plannedReps,
-COALESCE(main_work.actual_reps, main_work.planned_reps) AS actualReps
+main_work.actual_reps AS actualReps
 FROM main_work
 INNER JOIN workout_sessions s ON s.id = main_work.session_id
 WHERE s.cycle_id = ${session.cycle_id} AND s.lift_id = ${session.lift_id} AND s.status = 'completed'
 AND main_work.set_number = (SELECT MAX(set_number) FROM main_work WHERE session_id = s.id)` as CycleTopSet[];
+			const later = sql.get`SELECT 1 AS found FROM workout_sessions
+WHERE lift_id = ${session.lift_id} AND status = 'completed' AND planned_date > ${session.planned_date}
+LIMIT 1`;
 			tmIncrease = trainingMaxIncrease({
 				liftName: session.liftName,
 				trainingMax: session.current_training_max,
 				sessionTrainingMax: topSet?.training_max ?? undefined,
 				cycleType: session.cycle_type,
 				weekNumber: session.week_number_in_cycle,
-				topSets
+				topSets,
+				isLatestCompletedSession: later === undefined
 			});
 		}
 		if (tmCheck.kind === 'missedReps' || tmCheck.kind === 'askIfHeavy') {

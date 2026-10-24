@@ -17,6 +17,8 @@
 
 	// Completing hides the block's sessions and cannot be undone here, so it takes a second
 	// click. The button turns into the confirm under the pointer, so a double click is ignored.
+	let raising = $state(false);
+
 	let confirmingBlockId = $state<number>();
 	let armedAt = 0;
 	let confirmTimer: ReturnType<typeof setTimeout> | undefined;
@@ -83,25 +85,44 @@
 			class="card raise"
 			method="POST"
 			action="?/increaseTm"
-			use:enhance={() =>
-				({ update }) =>
-					update({ reset: false })}
+			use:enhance={() => {
+				raising = true;
+				return async ({ update }) => {
+					// Kept disabled until the new training max is loaded, so it cannot be sent twice
+					try {
+						await update({ reset: false });
+					} finally {
+						raising = false;
+					}
+				};
+			}}
 		>
 			<h3>Øk etter fullført syklus</h3>
 			<div class="raise-buttons">
 				{#each data.lifts as lift (lift.id)}
 					{@const increment = trainingMaxIncrement(lift.name)}
+					<input type="hidden" name={'from_' + lift.id} value={lift.current_training_max} />
 					<button
 						class="btn btn-secondary"
 						type="submit"
 						name="lift_id"
 						value={lift.id}
-						disabled={!(lift.current_training_max > 0)}
+						disabled={raising || !(lift.current_training_max > 0)}
 					>
 						{translateLiftName(lift.name)} +{formatKg(increment)}
 					</button>
 				{/each}
 			</div>
+			{#if form?.raiseError}
+				<p class="error" role="alert">{form.raiseError}</p>
+			{:else if form?.raised}
+				{@const raisedLift = data.lifts.find((lift) => lift.id === form.raised.liftId)}
+				<p class="ok" role="status">
+					{raisedLift ? translateLiftName(raisedLift.name) : 'Løftet'} er økt til {formatKg(
+						form.raised.to
+					)}.
+				</p>
+			{/if}
 		</form>
 	</section>
 

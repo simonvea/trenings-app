@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	MAX_TRAINING_MAX,
 	estimateOneRepMax,
 	currentOneRepMax,
 	lowerTrainingMax,
@@ -489,7 +490,8 @@ describe('trainingMaxIncrease', () => {
 		sessionTrainingMax: 100,
 		cycleType: 'leader' as const,
 		weekNumber: 3,
-		topSets: [hit, hit, hit]
+		topSets: [hit, hit, hit],
+		isLatestCompletedSession: true
 	};
 
 	describe('given the last week of a leader cycle where every top set reached its reps', () => {
@@ -535,6 +537,63 @@ describe('trainingMaxIncrease', () => {
 
 			// Assert
 			expect(increase).toEqual({ kind: 'hold', missedSets: 2 });
+		});
+	});
+
+	describe('given a skipped top set in the cycle', () => {
+		it('when deciding, then it counts as missed and the training max is held', () => {
+			// Arrange
+			const skipped = { plannedReps: 5, actualReps: null };
+			const cycle = { ...lastWeekOfLeader, topSets: [skipped, hit, hit] };
+
+			// Act
+			const increase = trainingMaxIncrease(cycle);
+
+			// Assert
+			expect(increase).toEqual({ kind: 'hold', missedSets: 1 });
+		});
+	});
+
+	describe('given a cycle where only the last week was logged', () => {
+		it('when deciding, then nothing is offered after a single session', () => {
+			// Arrange
+			const cycle = { ...lastWeekOfLeader, topSets: [hit] };
+
+			// Act
+			const increase = trainingMaxIncrease(cycle);
+
+			// Assert
+			expect(increase).toEqual({ kind: 'none' });
+		});
+	});
+
+	describe('given a later session of the same lift was completed', () => {
+		it('when deciding, then nothing is offered, since a later cycle already ran at this training max', () => {
+			// Arrange
+			const cycle = { ...lastWeekOfLeader, isLatestCompletedSession: false };
+
+			// Act
+			const increase = trainingMaxIncrease(cycle);
+
+			// Assert
+			expect(increase).toEqual({ kind: 'none' });
+		});
+	});
+
+	describe('given a raise that would pass the highest allowed training max', () => {
+		it('when deciding, then nothing is offered, so the card never offers what is refused', () => {
+			// Arrange
+			const cycle = {
+				...lastWeekOfLeader,
+				trainingMax: MAX_TRAINING_MAX - 1,
+				sessionTrainingMax: MAX_TRAINING_MAX - 1
+			};
+
+			// Act
+			const increase = trainingMaxIncrease(cycle);
+
+			// Assert
+			expect(increase).toEqual({ kind: 'none' });
 		});
 	});
 
