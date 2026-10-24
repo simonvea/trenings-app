@@ -93,6 +93,7 @@
 			{#key session.session_id}
 				<TrainingMaxCheck
 					check={data.tmCheck}
+					increase={data.tmIncrease}
 					sessionId={session.session_id}
 					liftId={session.lift_id}
 					trainingMax={session.current_training_max}

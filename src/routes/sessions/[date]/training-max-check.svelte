@@ -5,22 +5,23 @@
 	import { browserStorage, readDraft, writeDraft } from '$lib/draft';
 	import { formatShortDate } from '$lib/date';
 	import { formatKg, formatReps } from '$lib/format';
-	import type { TrainingMaxCheck } from '$lib/trainingMax';
+	import type { TrainingMaxCheck, TrainingMaxIncrease } from '$lib/trainingMax';
 
 	type Props = {
 		check: TrainingMaxCheck;
+		increase: TrainingMaxIncrease;
 		sessionId: number;
 		liftId: number;
 		trainingMax: number;
 		openTest: { test_date: string; training_max: number } | undefined;
 	};
 
-	const { check, sessionId, liftId, trainingMax, openTest }: Props = $props();
+	const { check, increase, sessionId, liftId, trainingMax, openTest }: Props = $props();
 
 	let saving = $state(false);
 	let failed = $state('');
-	// Shown after lowering, with a way back for a mis-tap on the gym floor
-	let lowered = $state<{ from: number; to: number }>();
+	// Shown after a change, with a way back for a mis-tap on the gym floor
+	let changed = $state<{ from: number; to: number }>();
 
 	// "It went fine" is remembered on this phone so the question is not asked on every visit
 	// The page keys this component on the session
@@ -35,9 +36,20 @@
 		answeredFine = true;
 		writeDraft(browserStorage(), answeredKey(), true);
 	}
+
+	// Declining a raise is remembered on this phone too, so the card does not nag
+	const skippedRaiseKey = (): string => `tm-raise-skipped-${sessionId}`;
+	let skippedRaise = $state<boolean>();
+	onMount(() => {
+		skippedRaise = readDraft(browserStorage(), skippedRaiseKey(), false, isTrue);
+	});
+	function skipRaise(): void {
+		skippedRaise = true;
+		writeDraft(browserStorage(), skippedRaiseKey(), true);
+	}
 </script>
 
-{#snippet changeForm(from: number, to: number, label: string, secondary: boolean)}
+{#snippet changeForm(from: number, to: number, label: string, secondary: boolean, undo: boolean)}
 	{#if openTest && to < from}
 		<p class="note muted">
 			TM-testen fra {formatShortDate(openTest.test_date)} ({formatKg(openTest.training_max)}) blir
@@ -58,10 +70,10 @@
 					} else if (result.type === 'failure') {
 						failed = String(result.data?.tmError ?? 'Ikke lagret');
 						// Already changed elsewhere; drop the stale card and show the current training max
-						lowered = undefined;
+						changed = undefined;
 						await invalidateAll();
 					} else {
-						lowered = to < from ? { from, to } : undefined;
+						changed = undo ? undefined : { from, to };
 						await update();
 					}
 				} finally {
@@ -79,17 +91,18 @@
 	</form>
 {/snippet}
 
-{#if lowered}
+{#if changed}
 	<section class="card check">
 		<!-- The tapped button is gone, so focus moves here and the result is read out -->
 		<h3 tabindex="-1" {@attach (el) => el.focus()}>
-			Training max er senket til {formatKg(lowered.to)}
+			Training max er {changed.to < changed.from ? 'senket' : 'økt'} til {formatKg(changed.to)}
 		</h3>
 		<p>Gjelder resten av blokka. Tidligere økter beholder vektene sine.</p>
 		{@render changeForm(
-			lowered.to,
-			lowered.from,
-			`Angre, tilbake til ${formatKg(lowered.from)}`,
+			changed.to,
+			changed.from,
+			`Angre, tilbake til ${formatKg(changed.from)}`,
+			true,
 			true
 		)}
 	</section>
@@ -104,6 +117,7 @@
 			trainingMax,
 			check.lowered,
 			`Senk TM til ${formatKg(check.lowered)}`,
+			false,
 			false
 		)}
 	</section>
@@ -118,9 +132,35 @@
 			trainingMax,
 			check.lowered,
 			`Ja, senk TM til ${formatKg(check.lowered)}`,
-			true
+			true,
+			false
 		)}
 		<button class="btn btn-secondary" type="button" onclick={wentFine}>Nei, det gikk greit</button>
+	</section>
+{:else if increase.kind === 'raise' && skippedRaise === false}
+	<section class="card check">
+		<h3>Øk training max?</h3>
+		<p>
+			Syklusen er ferdig og alle toppsett nådde repsene. Wendler øker med {formatKg(
+				increase.to - increase.from
+			)} etter hver syklus ({formatKg(increase.from)} → {formatKg(increase.to)}).
+		</p>
+		{@render changeForm(
+			increase.from,
+			increase.to,
+			`Øk TM til ${formatKg(increase.to)}`,
+			false,
+			false
+		)}
+		<button class="btn btn-secondary" type="button" onclick={skipRaise}>Ikke nå</button>
+	</section>
+{:else if increase.kind === 'hold'}
+	<section class="card check">
+		<h3>Training max holdes</h3>
+		<p>
+			{increase.missedSets} toppsett i syklusen nådde ikke repsene, så training max økes ikke. Vil du
+			øke likevel, bruk Øk-knappen under Planlegging.
+		</p>
 	</section>
 {/if}
 
