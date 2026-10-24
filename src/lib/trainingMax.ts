@@ -87,9 +87,20 @@ export type TopSetResult = {
 
 export type TrainingMaxCheck =
 	| { kind: 'none' }
-	| { kind: 'missedReps'; actualReps: number; minimumReps: number; lowered: number }
+	| {
+			kind: 'missedReps';
+			actualReps: number;
+			minimumReps: number;
+			lowered: number;
+			// The 10 % rule fits a missed AMRAP; at the full training max the reps are a test of it
+			basis: 'tenPercent' | 'estimatedMax';
+	  }
 	| { kind: 'askIfHeavy'; lowered: number }
 	| { kind: 'changed'; trainingMax: number };
+
+// Wendler's pass mark for a set at the full training max: with the training max at 90 % of
+// the 1RM, three reps. The TM-test week plans five, which is the 85 % training max's mark.
+const TEST_MINIMUM_REPS = 3;
 
 // Wendler: missing the minimum reps on the + set, or a 100 % set in the 7th week that
 // felt too heavy, means the training max is too heavy.
@@ -103,9 +114,12 @@ export const trainingMaxCheck = ({
 	sessionTrainingMax?: number;
 	topSet: TopSetResult;
 }): TrainingMaxCheck => {
-	const atFullTrainingMax = !topSet.isAmrap && topSet.percentage >= 1;
-	const missedReps =
-		(topSet.isAmrap || atFullTrainingMax) && topSet.actualReps < topSet.plannedReps;
+	const atTrainingMax = topSet.percentage >= 1;
+	const atFullTrainingMax = !topSet.isAmrap && atTrainingMax;
+	const minimumReps = atTrainingMax
+		? Math.min(topSet.plannedReps, TEST_MINIMUM_REPS)
+		: topSet.plannedReps;
+	const missedReps = (topSet.isAmrap || atFullTrainingMax) && topSet.actualReps < minimumReps;
 	if (!missedReps && !atFullTrainingMax) return { kind: 'none' };
 
 	const changed =
@@ -116,15 +130,23 @@ export const trainingMaxCheck = ({
 			: sessionTrainingMax !== trainingMax;
 	if (changed) return { kind: 'changed', trainingMax };
 
-	const lowered = lowerTrainingMax(trainingMax);
-	return missedReps
+	if (!missedReps) return { kind: 'askIfHeavy', lowered: lowerTrainingMax(trainingMax) };
+	// Below the pass mark the estimate is under the training max, so this always lowers it
+	return atTrainingMax
 		? {
 				kind: 'missedReps',
 				actualReps: topSet.actualReps,
-				minimumReps: topSet.plannedReps,
-				lowered
+				minimumReps,
+				lowered: trainingMaxFromTest({ weight: trainingMax, reps: topSet.actualReps }),
+				basis: 'estimatedMax'
 			}
-		: { kind: 'askIfHeavy', lowered };
+		: {
+				kind: 'missedReps',
+				actualReps: topSet.actualReps,
+				minimumReps,
+				lowered: lowerTrainingMax(trainingMax),
+				basis: 'tenPercent'
+			};
 };
 
 const LOWER_BODY_LIFTS = new Set(['Squat', 'Deadlift']);

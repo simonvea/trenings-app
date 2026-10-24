@@ -47,7 +47,8 @@ The app uses SQLite with a comprehensive schema for tracking 5/3/1 powerlifting 
 - `src/lib/server/migrations/NNN_*.sql` - Schema migrations, tracked with `PRAGMA user_version`. Add a new numbered file for schema changes; never edit an applied one
 - `src/lib/planning/` - Block planning: `schedule.ts` (pure session date planning), `blockForm.ts` (form parsing/validation), `db.server.ts` (planning queries)
 - `src/lib/trainingMax.ts` - Pure TM rules: 1RM estimate, TM from a test, which TM to suggest
-  for a new block, when to suggest lowering it after a session, and when to raise it after a
+  for a new block, when to suggest lowering it after a session (a missed AMRAP: 10 % off; a set at the full
+  training max under Wendler's three reps: 90 % of the estimated 1RM), and when to raise it after a
   cycle (`trainingMaxIncrease`; Wendler's +5 kg lower body, +2.5 kg upper body, hardcoded in
   `trainingMaxIncrement`)
 - `src/lib/types.ts` - TypeScript definitions for database entities

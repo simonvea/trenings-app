@@ -279,7 +279,13 @@ describe('trainingMaxCheck', () => {
 			const check = trainingMaxCheck(session);
 
 			// Assert
-			expect(check).toEqual({ kind: 'missedReps', actualReps: 3, minimumReps: 5, lowered: 90 });
+			expect(check).toEqual({
+				kind: 'missedReps',
+				actualReps: 3,
+				minimumReps: 5,
+				lowered: 90,
+				basis: 'tenPercent'
+			});
 		});
 	});
 
@@ -312,7 +318,7 @@ describe('trainingMaxCheck', () => {
 		});
 	});
 	describe('given a PR week AMRAP set at 100 % below the minimum reps', () => {
-		it('when checking, then a lower training max is suggested', () => {
+		it('when checking, then a training max from the estimated max is suggested', () => {
 			// Arrange
 			const session = {
 				trainingMax: 100,
@@ -323,23 +329,75 @@ describe('trainingMaxCheck', () => {
 			const check = trainingMaxCheck(session);
 
 			// Assert
-			expect(check).toEqual({ kind: 'missedReps', actualReps: 2, minimumReps: 3, lowered: 90 });
+			expect(check).toEqual({
+				kind: 'missedReps',
+				actualReps: 2,
+				minimumReps: 3,
+				lowered: 95.5,
+				basis: 'estimatedMax'
+			});
 		});
 	});
 
-	describe('given a TM-test week set at 100 % with fewer reps than planned', () => {
-		it('when checking, then a lower training max is suggested', () => {
+	describe('given a TM-test week set at 100 % planned for five reps', () => {
+		const testWeek = {
+			trainingMax: 100,
+			topSet: { percentage: 1, plannedWeight: 100, plannedReps: 5, actualReps: 3, isAmrap: false }
+		};
+
+		it('when three reps were done, then it counts as passed', () => {
+			// Arrange
+			const session = testWeek;
+
+			// Act
+			const check = trainingMaxCheck(session);
+
+			// Assert
+			expect(check).toEqual({ kind: 'askIfHeavy', lowered: 90 });
+		});
+
+		it('when only two reps were done, then the training max is lowered from the estimated max', () => {
+			// Arrange
+			const session = { ...testWeek, topSet: { ...testWeek.topSet, actualReps: 2 } };
+
+			// Act
+			const check = trainingMaxCheck(session);
+
+			// Assert
+			expect(check).toEqual({
+				kind: 'missedReps',
+				actualReps: 2,
+				minimumReps: 3,
+				lowered: 95.5,
+				basis: 'estimatedMax'
+			});
+		});
+
+		it('when no rep was done, then the estimate is the weight itself, so 90 % of it', () => {
+			// Arrange
+			const session = { ...testWeek, topSet: { ...testWeek.topSet, actualReps: 0 } };
+
+			// Act
+			const check = trainingMaxCheck(session);
+
+			// Assert
+			expect(check).toMatchObject({ kind: 'missedReps', lowered: 90, basis: 'estimatedMax' });
+		});
+	});
+
+	describe('given a 7th week deload set at 100 % planned for one rep', () => {
+		it('when the rep was missed, then the minimum stays at the planned one rep', () => {
 			// Arrange
 			const session = {
-				trainingMax: 100,
-				topSet: { percentage: 1, plannedWeight: 100, plannedReps: 5, actualReps: 3, isAmrap: false }
+				...seventhWeek,
+				topSet: { ...seventhWeek.topSet, actualReps: 0 }
 			};
 
 			// Act
 			const check = trainingMaxCheck(session);
 
 			// Assert
-			expect(check).toEqual({ kind: 'missedReps', actualReps: 3, minimumReps: 5, lowered: 90 });
+			expect(check).toMatchObject({ kind: 'missedReps', minimumReps: 1 });
 		});
 	});
 
